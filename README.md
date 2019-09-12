@@ -29,21 +29,20 @@ EMail: rols1@gmx.de
 #### This product uses the Flickr API but is not endorsed or certified by Flickr.
 #### Note: do NOT use addon's API-Key in other projects
 
-INSTALLATION (deutsch):
+INSTALLATION
 =================== 
-- Download der zip-Datei hier: https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
-- Im Kodi-Menü Addons/Addon-Browser anklicken: aus ZIP-Datei installieren
-- Heruntergeladene zip-Datei im Kodi-Browser auswählen.
-- Addon öffen und Addon-Einstellungen anpassen.
-- [bebilderte Anleitung](https://www.kodinerds.net/index.php/Thread/14234-Wie-installiert-man-Addons-die-nicht-über-den-Addon-Browser-verfügbar-sind/?page=Thread&threadID=14234)
-
-INSTALLATION (engl.):
-===================  
+## english:
 - Download zip-file from https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
 - choose downloaded zip-file with your Kodi-Browser
 - start addon and make the appropriate settings
 - [further instructions with pictures](https://kodi.wiki/view/HOW-TO:Install_add-ons_from_zip_files) 
 
+## deutsch:
+- Download der zip-Datei hier: https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
+- Im Kodi-Menü Addons/Addon-Browser anklicken: aus ZIP-Datei installieren
+- Heruntergeladene zip-Datei im Kodi-Browser auswählen.
+- Addon öffen und Addon-Einstellungen anpassen.
+- [bebilderte Anleitung](https://www.kodinerds.net/index.php/Thread/14234-Wie-installiert-man-Addons-die-nicht-über-den-Addon-Browser-verfügbar-sind/?page=Thread&threadID=14234)
 
 UPDATES:
 ===================  
@@ -51,15 +50,19 @@ via Addon-Update-Modul
  
  Hauptmenü:
 ===================  
-![img]()
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Main_Menu.png)
 
 FlickrPeople Menü (Suchbegriff DaVinci):
 ===================  
-![img]()  
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Menu_FlickrPeople.png)  
 
 FlickrPeople Menü (ausgewählt: flicoholic):
 ===================  
-![img]()
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/FlickrPeople_flicoholic.png)
+
+Search example (query_Panorama):
+===================  
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Suche_Panorama-S1.png)
 
 Einstellungen
 ===================  
