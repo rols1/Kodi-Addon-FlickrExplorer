@@ -55,7 +55,7 @@ via Addon-Update-Modul
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Main_Menu.png)
 
 ## FlickrPeople Menü (query: DaVinci):
-[img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Menu_FlickrPeople.png)  
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Menu_FlickrPeople.png)  
 
 ## FlickrPeople Menü (flicoholic):
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/FlickrPeople_flicoholic.png)
