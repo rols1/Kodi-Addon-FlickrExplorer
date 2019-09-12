@@ -54,13 +54,13 @@ via Addon-Update-Modul
 ## Main_Menu
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Main_Menu.png)
 
-## FlickrPeople Menü (Suchbegriff DaVinci):
+## FlickrPeople Menü (query: DaVinci):
 [img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Menu_FlickrPeople.png)  
 
-## FlickrPeople Menü (ausgewählt: flicoholic):
+## FlickrPeople Menü (flicoholic):
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/FlickrPeople_flicoholic.png)
 
-## Search example (query_Panorama):
+## Search example (query: Panorama):
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Suche_Panorama-S1.png)
 
 ## Settings: languages
