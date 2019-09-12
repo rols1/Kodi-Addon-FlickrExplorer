@@ -1,6 +1,6 @@
 Kodi-Addon-FlickrExplorer
 ==============
-Addon für Kodi (vormals Plugin für den Plexmediaserver)
+ported from FlickrExplorer (https://github.com/rols1/FlickrExplorer)
 
 Download aktuelle Version: https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 
