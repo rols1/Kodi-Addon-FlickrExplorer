@@ -26,8 +26,9 @@ EMail: rols1@gmx.de
 - konfigurierbarer Cache für Diashows
 - Updatemodul ist integriert
 
-#### This product uses the Flickr API but is not endorsed or certified by Flickr.
-#### Note: do NOT use addon's API-Key in other projects
+Note:
+=================== 
+## This product uses the Flickr API but is not endorsed or certified by Flickr. Do NOT use addon's API-Key in other projects.
 
 INSTALLATION
 =================== 
@@ -48,25 +49,34 @@ UPDATES:
 ===================  
 via Addon-Update-Modul
  
- Hauptmenü:
-===================  
+ Pictures:
+=================== 
+## Main_Menu
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Main_Menu.png)
 
-FlickrPeople Menü (Suchbegriff DaVinci):
-===================  
-![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Menu_FlickrPeople.png)  
+## FlickrPeople Menü (Suchbegriff DaVinci):
+[img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Menu_FlickrPeople.png)  
 
-FlickrPeople Menü (ausgewählt: flicoholic):
-===================  
+## FlickrPeople Menü (ausgewählt: flicoholic):
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/FlickrPeople_flicoholic.png)
 
-Search example (query_Panorama):
-===================  
+## Search example (query_Panorama):
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Suche_Panorama-S1.png)
 
-Einstellungen
-===================  
-![img]()
+## Settings: languages
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Settings_Lang.png)
+
+## Settings: username
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Settings_Username.png)
+
+## Settings: startup
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Settings_Startup.png)
+
+## Settings: display
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Settings_Display.png)
+
+## Settings: cache
+![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Settings_Cache.png)
 
 
 
