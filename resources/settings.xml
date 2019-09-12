@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+   <category label="248">
+		<setting label="248" type="select"  
+		values="English/en/en_GB|German/de/de_DE"  
+		default="English/en/en_GB" id="language"/>
+	</category>
+		
+   <category label="30101">
+ 		<setting label="1014" type="text" id="username" default=""/>
+		<setting label="30114" type="text" id="FlickrPeople" default="DaVinci"/>
+		<setting label="30102"  type="text" id="info2" enable="false"/>
+		<setting label="30103"  type="text" id="info3" enable="false"/>
+		<setting label="30104"  type="text" id="info4" enable="false"/>
+
+	</category>
+	
+	<category label="30200">
+ 		<setting label="30202"  type="bool" id="pref_info_update" default="true"/>
+ 		<setting label="30201"  type="bool" id="pref_info_debug" default="false"/>
+	</category>
+
+    <category label="30115">
+		<setting label="30111" type="select" values="15|25|50|100|500"  id="maxPageContent" default="25"/>
+		<setting label="30105"  type="text" id="info5" enable="false"/>
+		
+		<setting label="30116" type="select"  
+		values="Originalbild|2048|1600|1024|800|640"
+		default="1600" id="max_width"/>
+		
+		<setting label="30112" type="select"  
+		values="1 / date-posted-desc|2 / date-posted-asc|3 / date-taken-desc|4 / date-taken-asc|6 / interestingness-desc|7 / interestingness-asc|8 / relevance"  
+		default="1 / date-posted-desc" id="sort_order"/>
+		<setting label="30113" type="bool" default="true" id="showVideos"/>
+	</category>
+	
+	
+
+	 <category label="439">
+		<setting label="30501" type="select" values="1|10|30|100|500" default="100" id="DICT_store_days"/>
+		<setting label="30502" type="select" values="100 MBytes|500 MBytes|1 GByte|2 GBytes|5 GBytes|10 GBytes" default="100 MBytes" id="max_slide_store"/>
+	</category>
+				
+		
+</settings>

@@ -1,0 +1,66 @@
+CHANGE HISTORY 	Kodi-Addon-FlickrExplorer  (vormals Plugin für den Plexmediaserver)
+--------------	Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
+
+??.09.2019	0.6.2	Migration zu Kodi
+
+05.08.2018	0.6.1	PlayVideo: Headertest für ev. HTML-Rückgabe.
+			RequestUrl: angepasst für Headertest.
+			Fehlervideo PrivatePage720x640.mp4 in Ressources hinzugefügt.
+			
+not on github	0.6.0	Wiedergabe von Videos: zusätzl. Funktionen SeparateVideos, CreateVideoClipObject, PlayVideo.
+			BuildExtras: 'media' den Url-Parametern hinzugefügt.
+			Anpassungen in BuildPages und ShowPhotoObject.		
+16.07.2018	0.5.9	Für PHT: Vermeidung von Plugin-Aus bei "return ObjectContainer" - ersetzt bei leeren Inhalten
+			durch Menübutton (DirectoryObject).  	
+12.07.2018	0.5.8	Änderung des Namens Plex-Plugin-Flickr -> FlickrExplorer zur Vermeidung von
+			trademark-Konflikten.
+04.07.2018	0.5.7	Integration WebPeopleSingle in MyMenu - Anpassung home. WebPeopleSingle entfernt 
+			(nicht mehr benötigt).
+			Route home ergänzt.
+			MyGalleries: Ermittlung gallery_id angepasst an unterschiedliche Url-Endungen.
+01.07.2018	0.5.6	Für PHT: Auslagerung der Funktion zur Anzeige der Fotos (ShowPhotoObject) - wegen PHT 
+			ohne Buttons (Home, Mehr..).
+			Funktion home angepasst: Rücksprung zum Untermenü von FlickrPeople für gewählte Nutzer.
+not on github	0.5.5	Untermenü für FlickrPeople (WebPeopleSingle): Menü Photostream, Galleries, Albums, Faves.
+			Zusätzl. Funktion MyAlbums. 		
+not on github	0.5.4	Menu FlickrPeople hinzugefügt: listet Flickr Nutzer, die dem Suchbegiff in Einstellungen
+			entsprechen. 
+not on github	0.5.3	Sprachen: Sprachdateien Deutsch/Englisch eingefügt, Pluginstrings angepasst.
+not on github	0.5.2	MyFaves: listet Favoriten eines Users. MyPhotostream: listet Fotos eines Users. 
+			Update-Modul aktualisiert (Github-Ausfall berücksichtigt). 	
+			MyGalleries: listet Galerien eines Users.
+not on github	0.5.1	zusätzl. Hauptmenü für vorgebenen User: MyMenu (MyPhotostream, MyGalleries,..).	
+not on github	0.5.0	Pfadbildung ausgelagert (BuildPath) + abhängig von user_id.
+not on github	0.4.9	Unterstützung für beliebigen User implementiert (GetUserID).
+not on github	0.4.8	Flickr-API einschl. abhängige Module wieder entfernt, Verzicht auf User-Login - OAUTH-Verfahren 
+			via Web zu kompliziert für dieses Plugin. Damit Verzicht auf Sichtung nicht öffentlicher Inhalte;
+			Modifikationen von Inhalten war ohnehin nicht vorgesehen. 
+			API_KEY gespeichert in ../Resources/flickr_keys.txt.	
+not on github	0.4.7	Flickr-API: Anpassungen für den Plugin-Betrieb (s. ../Shared/00_Hinweise.txt)
+not on github	0.4.6	Flickr-API: von flickr-api abhängige Bibliotheken hinzugefügt (distutils, 
+			httplib2, oauth2, requests, six.py).	
+not on github	0.4.5	Flickr-API: Bibliothek python-flickr-api (alexis-mignon) hinzugefügt
+			Menü Einstellungen (obsolet) ersetzt durch Info-Button 	
+30.06.2017 	0.4.4 	Pluginstart: Option zum Anzeigen neuer Updates hinzugefügt.
+			MIT-Lizenz am 17.01.2017 hinzugefügt			
+20.08.2016 	0.4.3	Korrektur: Menü-Fehler im Suche-Button beseitigt (Aufruf Main() erfolgte
+			mit 1 Parameter zuviel)
+17.08.2016 	0.4.2	Korrektur: Fehler bei Seitensteuerung beseitigt
+			Erweiterung: Einstellungen (Fotosuche: maximale Bildbreite)			
+16.08.2016 	0.4.1	Search_Work: Anforderung mehrerer Quell-URL's + Ermittlung des größten verfügbaren Fotos	
+15.08.2016 	0.4.0	Initial Release Github	
+14.08.2016 	0.4.0	verwirklicht: Blättern vor- und rückwärts	
+06.08.2016 	0.3.0	verwirklicht: Suche
+03.08.2016 	0.2.0	verwirklicht: Galerien
+28.07.2016 	0.1.0	Entwurf, Einrichtung Projektumgebung, Pluginrumpf
+		
+
+
+
+
+
+
+
+
+
+	

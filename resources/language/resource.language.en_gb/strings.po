@@ -1,0 +1,108 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: POEditor.com\n"
+"Project-Id-Version: TuneIn2017\n"
+"Info: only for Settings. Main translating by Addon\n"
+"Language: en_gb\n"
+
+#:
+msgctxt "#30202" 
+#: "This term is shown in Preferences as option to look for update at plugin-start"
+msgid "look for update at plugin-start"
+msgstr "look for update at plugin-start"
+
+#: 
+msgctxt "#30111" 
+#: "This term is shown in Preferences for a listbox for setting the maximum number of items per page. "
+msgid "maximum number of items per page"
+msgstr "maximum number of items per page"
+
+#:
+msgctxt "#30200" 
+#: "Preferences Category Label"
+msgid "Startup Settings"
+msgstr "Startup Settings"
+
+#: 
+msgctxt "#30201" 
+#: "Startup Preferences"
+msgid "Turn debug logging on or off"
+msgstr "Turn debug logging on or off"
+
+msgctxt "#30501" 
+#: "Cache Preferences"
+msgid "Days until deletion"
+msgstr "Days until deletion"
+
+msgctxt "#30502" 
+#: "Preferences: max. slidestore"
+msgid "max. storage size for slideshows"
+msgstr "max. storage size for slideshows"
+
+msgctxt "#30101" 
+#: "Category Label User"
+msgid "Flickr: Username, Mail or User_ID"
+msgstr "Flickr: Username, Mail or User_ID"
+
+msgctxt "#30102" 
+#: "Preferences: User info1"
+msgid "Info 1: for Menu MyFlickr you have to set Username"
+msgstr "Info 1: for Menu MyFlickr you have to set Username"
+
+msgctxt "#30103" 
+#: "Preferences: User info2"
+msgid "Info 2:  Addon displays public content only (no login)"
+msgstr "Info 2:  Addon displays public content only (no login)"
+
+msgctxt "#30104" 
+#: "Preferences: User info3"
+msgid "Info 3:  username can be a any Flickr user name"
+msgstr "Info 3: username can be a any Flickr user name"
+
+msgctxt "#30105" 
+#: "Preferences: maxPageContent Info"
+msgid "Info:  higher values increase the loading time for slideshows"
+msgstr "Info: higher values increase storage + loading time for slideshows"
+
+msgctxt "#30112" 
+#: "Preferences Sort method"
+msgid "Sort method - only for Search"
+msgstr "Sort method - only for menu Search"
+
+msgctxt "#30113" 
+#: "Preferences: show videos"
+msgid "show videos if available"
+msgstr "show videos if available"
+
+msgctxt "#30114" 
+#: "Preferences: query for menu FlickrPeople"
+msgid "search term for menu FlickrPeople"
+msgstr "search term for menu FlickrPeople"
+
+msgctxt "#30115" 
+#: "Preferences Category: Picture display"
+msgid "Picture display"
+msgstr "Picture display"
+
+msgctxt "#30116" 
+#: "Preferences: max. width of pictures"
+msgid "max. width of pictures"
+msgstr "max. width of pictures"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

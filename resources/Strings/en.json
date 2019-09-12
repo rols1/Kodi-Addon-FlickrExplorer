@@ -1,0 +1,73 @@
+{
+	"Suche": "Search",
+	"Suche nach": "Search for",
+	"Suche Nutzer und ihre Inhalte": "search users and their content",
+	"Suchbegriff im Suchfeld eingeben und Return druecken": "enter search term in search field and hit return",
+	"im oeffentlichen Inhalt": "in all public content",
+	"Fehler": "Error",
+	"Fotos": "Photos",
+	"Groesse": "Size",
+	"Mehr...":  "More...",
+	"Mehr (+ 1)":  "More (+ 1)",
+	"Mehr (+ 10)":  "More (+ 10)",
+	"Mehr (+ 100)":  "More (+ 100)",
+	"Weniger (- 1)":  "Less (- 1)",
+	"Weniger (- 10)":  "Less (- 10)",
+	"Weniger (- 100)":  "Less (- 100)",
+	"Photostream":  "Photostream",
+	"Web Gallerien":  "Web Galleries",
+	"Stoerungsmeldungen an Forum oder rols1@gmx.de": "Report issues to Forum or rols1@gmx.de",
+	"Zurueck zu MyFlickr": "Return to MyFlickr",
+	"Zurueck zum Hauptmenue": "Return to Main menu",
+	"Zurueck zu": "Return to",
+	"Keine Gallerien gefunden": "No Galleries found",
+	"Keine Alben gefunden": "No Albums found",
+	"User nicht gefunden gefunden": "User not found",
+	"kein Treffer": "no hit",
+	"Galerien": "Galleries",
+	"Album": "Album",
+	"Alben": "Albums",
+	"Seite": "Page",
+	"Seiten": "Pages",
+	"von": "of",
+	"Bildgroesse": "Image size",	
+	"Flickr Nutzer": "Flickr People",
+	"Beliebiger Suchbegriff fuer Menue Flickr Nutzer, zum Beispiel DaVinci": "Any search term for Menu Flickr People, for example DaVinci",
+	"Einstellungen: Suchbegriff für Flickr Nutzer fehlt": "Settings: search term for Flickr People missing",
+	"keine weiteren Eintraege vorhanden": "no more items available",
+
+	 "neues Update vorhanden": "new Update available",
+	 "jetzt installieren": "install now",
+	 "Update abbrechen": "Cancel Update",
+	 "weiter im aktuellen Plugin": "continue with present Plugin",
+	 "ist die neueste Version":"is the latest version",
+	 "Suche nach neuen Updates starten": "Start searching for new Updates",
+	 "Bezugsquelle": "source of supply",
+	 "Github ist nicht errreichbar": "Github is not available",
+	 "Bitte die Update-Anzeige abschalten": "Please deselect the Plugin-Notification",
+	 "neues Update beim Start des Plugins anzeigen": "look for update at plugin-start",
+	 "Username ueberpruefen": "Please check username",
+	 
+	 "Einstellungen": "Settings",
+	 "Sprache Plugin": "Language Plugin",
+	 "Username, Mailadresse oder User_ID eines Flicker Users. Es wird nur der oeffentliche Inhalt dieses Users gezeigt (kein Login durch das Plugin)": "username, email adress or user_id of a Flickr user. You only see public content of this user (this plugin does not login)",
+	"maximale Anzahl Objekte pro Seite": "maximum number of items per page",
+	"Sortierung fuer Suche": "Sort Order for Search",
+	"Fotosuche: maximale Bildbreite": "Photosearch: maximum image width",
+	"Originalbild": "Original Photo",
+	"Videos zeigen, falls verfuegbar": "show videos, if available",
+	"zeige Videos": "show videos",
+	"zeige Fotos": "show photos",
+	"Ermittlung der Seitenzahl gescheitert": "Number of pages couldn't be located",
+	"Gezeigt wird nur die erste Seite": "only the first page will be shown"
+}
+
+
+
+
+
+
+
+
+
+
