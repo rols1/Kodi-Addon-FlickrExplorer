@@ -27,11 +27,11 @@ EMail: rols1@gmx.de
 - Updatemodul ist integriert
 
 Note:
-=================== 
+===================
 ## This product uses the Flickr API but is not endorsed or certified by Flickr. Do NOT use addon's API-Key in other projects.
 
 INSTALLATION
-=================== 
+===================
 ## english:
 - Download zip-file from https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
 - choose downloaded zip-file with your Kodi-Browser
