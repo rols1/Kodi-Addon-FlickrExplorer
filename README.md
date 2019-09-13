@@ -26,7 +26,7 @@ EMail: rols1@gmx.de
 - konfigurierbarer Cache für Diashows
 - Updatemodul ist integriert
 
-# Note: This product uses the Flickr API but is not endorsed or certified by Flickr. Do NOT use addon's API-Key in other projects.
+##### Note: This product uses the Flickr API but is not endorsed or certified by Flickr. Do NOT use addon's API-Key in other projects.
 
 INSTALLATION
 ===================
