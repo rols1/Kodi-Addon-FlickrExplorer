@@ -13,7 +13,7 @@ EMail: rols1@gmx.de
 ## english:
 - Browse and search public content on Flickr (Photostream, Galleries, Albums, Faves, People)
 - shows videos if available
-- works with your own flickr username or any other username (mo login, only public content!)
+- works with your own flickr username or any other username (no login, only public content!)
 - Languages: English, German
 - configurable Cache for slideshows
 - build-in Update-Modul
