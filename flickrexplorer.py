@@ -14,6 +14,9 @@ from StringIO import StringIO
 import gzip, zipfile
 
 import os, sys
+from threading import Thread	# thread_getpic
+import shutil					# thread_getpic
+
 import json				# json -> Textstrings
 import re				# u.a. Reguläre Ausdrücke
 import math				# für math.ceil (aufrunden)
@@ -36,8 +39,8 @@ make_filenames=util.make_filenames; CheckStorage=util.CheckStorage
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.6.2'	
-VDATE = '12.09.2019'
+VERSION =  '0.6.3'	
+VDATE = '04.10.2019'
 
 # 
 #	
@@ -595,9 +598,9 @@ def FlickrPeople(pagenr=1):
 		username = SETTINGS.getSetting('FlickrPeople').replace(' ', '%20')		# Leerz. -> url-konform 
 		path = 'https://www.flickr.com/search/people/?username=%s&page=%s' % (username, pagenr)
 	else:
-		msg = L('Einstellungen: Suchbegriff für Flickr Nutzer fehlt')
-		
-		return ObjectContainer(header=L('Info'), message=msg)			
+		msg1 = L('Einstellungen: Suchbegriff für Flickr Nutzer fehlt')
+		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		return 			
 	
 	title2 = 'Flickr People ' + L('Seite') + ' ' +  str(pagenr)
 	li = xbmcgui.ListItem()
@@ -605,7 +608,9 @@ def FlickrPeople(pagenr=1):
 				
 	page, msg = RequestUrl(CallerName='FlickrPeople', url=path)
 	if page == '': 
-		return ObjectContainer(header=L('Info'), message=msg)			
+		msg1 = msg
+		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		return 			
 	PLog(page[:100])
 	page = page.replace('\\', '')					# Pfadbehandl. im json-Bereich
 	
@@ -1123,9 +1128,9 @@ def SeparateVideos(title, path, title_org):
 # eindeutiger Verz.-Namen: 		path2dirname - s.u.
 #
 # Hinw.: bei wiederholten Aufrufen einer Quelle sammeln sich im Slide-Verz.
-#	mehr Bilder als bei Flickr (insbes. Photostream wir häufig aktualisiert) -
-#	es erfolgt kein Abgleich. Alle Bilder in einem Verz. verbleiben bis zum
-#	Löschen durch CheckStorage oder CleanUp.
+#	mehr Bilder als bei Flickr (insbes. Photostream wird häufig aktualisiert) -
+#	es erfolgt kein Abgleich durch das Addon. Alle Bilder in einem Verz.
+#	verbleiben bis zum Löschen durch CheckStorage oder CleanUp.
 #
 def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	PLog('ShowPhotoObject:')
@@ -1221,29 +1226,49 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 			PLog("Bildtitel: " + title)
 			title = UtfToStr(title)
 			
-			thumb = ''
+			thumb = img_src									# Default: Bild = Url 
 			local_path = os.path.abspath(local_path)
-			if os.path.isfile(local_path) == False:			# schon vorhanden?
-				try:
-					urllib.urlretrieve(img_src, local_path)
-					thumb = local_path
-				except Exception as exception:
-					PLog(str(exception))	
-			else:		
-				thumb = local_path			
+			if os.path.isfile(local_path) == False:			# nicht lokal vorhanden - get & store
+				# 03.10.2019 urlretrieve in Schleife bremst sehr stark - daher Ausführung im Hintergrund
+				#try:
+					#urllib.urlretrieve(img_src, local_path)
+				background_thread = Thread(target=thread_getpic, args=(img_src, local_path))
+				background_thread.start()
+				thumb = local_path
+				#except Exception as exception:
+				#	PLog(str(exception))	
+			else:											
+				thumb = local_path							# lokal vorhanden - load
+				thumb_src = thumb							# Verzicht auf thumbnail von Farm			
 			
 			local_path=UtfToStr(local_path); summ=UtfToStr(summ); fpath=UtfToStr(fpath);
 			title_org=UtfToStr(title_org);	
 			tagline = unescape(title_org); tagline = cleanhtml(tagline)
 			summ = unescape(summ)
-			PLog('neu:');PLog(title);PLog(thumb);PLog(summ); PLog(local_path);
-			if thumb:
-				fparams="&fparams={'path': '%s', 'single': 'True'}" % urllib2.quote(local_path)
-				addDir(li=li, label=title, action="dirList", dirID="SlideShow", 
-					fanart=thumb, thumb=thumb, fparams=fparams, summary=summ, tagline=tagline)
-
-			image += 1
+			PLog('neu:');PLog(title);PLog(thumb);PLog(thumb_src);PLog(summ); PLog(local_path);
 			
+			if thumb:
+				# via addDir ist keine Steuerung mittels Cursortasten im Listing möglich.
+				#	Daher verwenden wir für jedes Bild ein eigenes Listitem. 
+				#fparams="&fparams={'path': '%s', 'single': 'True'}" % urllib2.quote(local_path)
+				#addDir(li=li, label=title, action="dirList", dirID="SlideShow", 
+				#	fanart=thumb, thumb=thumb, fparams=fparams, summary=summ, tagline=tagline)
+
+				image += 1
+
+				li = xbmcgui.ListItem(
+					label=title,
+					thumbnailImage=thumb_src				# lokal oder Farm
+				)
+				li.setInfo(type='image', infoLabels={'Title': title}) # plot bei image nicht möglich
+				xbmcplugin.addDirectoryItem(
+					handle=HANDLE,
+					url=thumb,								# lokal oder Farm
+					listitem=li,
+					isFolder=False
+				)
+			
+	# Button SlideShow - auch via Kontextmenü am Bild	
 	if image > 0:	
 		fparams="&fparams={'path': '%s'}" % urllib2.quote(fpath) 	# fpath: SLIDESTORE/fname
 		addDir(li=li, label="SlideShow", action="dirList", dirID="SlideShow", 
@@ -1251,6 +1276,17 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 
 	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=True)  # ohne Cache, um Neuladen zu verhindern
 
+#----------------------------------------------------------------
+def thread_getpic(img_src, local_path):
+	PLog("thread_getpic:")
+	PLog(img_src); PLog(local_path);
+
+	try:
+		urllib.urlretrieve(img_src, local_path)
+	except Exception as exception:
+		PLog("thread_getpic:" + str(exception))
+
+	return
 #----------------------------------------------------------------
 # Aufruf  ShowPhotoObject
 #	erzeugt eindeutigen Verz.-Namen aus title_org, Titel + Pfad, Bsp.:

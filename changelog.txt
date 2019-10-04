@@ -1,7 +1,14 @@
-CHANGE HISTORY 	Kodi-Addon-FlickrExplorer  (vormals Plugin für den Plexmediaserver)
---------------	Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
+CHANGE HISTORY 	Kodi-Addon-FlickrExplorer  
+		ported from Plex version FlickrExplorer (https://github.com/rols1/FlickrExplorer)
+		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
+		Forum:		https://forum.kodi.tv/showthread.php?tid=347210
+--------------
 
-??.09.2019	0.6.2	Migration zu Kodi
+04.10.2019	0.6.3	ShowPhotoObject: background process for loading pics from flickr (performance).
+			ShowPhotoObject: create a ListItem for every pic (make browsing in the image list possible).	
+
+12.09.2019	0.6.2	Migration to Kodi,  details: see ../Kodi/Archiv-Plugin/Kodi-Addon_FlickrExplorer
+			(local dev-dir) and statements in flickrexplorer.py.
 
 05.08.2018	0.6.1	PlayVideo: Headertest für ev. HTML-Rückgabe.
 			RequestUrl: angepasst für Headertest.

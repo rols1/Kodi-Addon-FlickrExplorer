@@ -56,13 +56,13 @@ def PLog(msg, loglevel=xbmc.LOGDEBUG):
 		xbmc.log("%s --> %s" % (NAME, msg), level=loglevel)
 	 
 #---------------------------------------------------------------- 
-#	03.04.2019 data-Verzeichnis des Addons:
-#  		Check /Initialisierung / Migration
-# 	27.05.2019 nur noch Check (s. Forum:
-#		www.kodinerds.net/index.php/Thread/64244-RELEASE-Kodi-Addon-ARDundZDF/?pageNo=23#post528768
-#	Die Funktion checkt bei jedem Aufruf des Addons data-Verzeichnis einschl. Unterverzeichnisse 
-#		auf Existenz und bei Bedarf neu an. User-Info nur noch bei Fehlern (Anzeige beschnittener 
-#		Verzeichnispfade im Kodi-Dialog nur verwirend).
+#	03.04.2019 data-Verzeichnisse des Addons in
+#		../.kodi/userdata/addon_data/plugin.image.flickrexplorer
+#  		Check / Initialisierung 
+#	Die Funktion checkt bei jedem Aufruf des Addons data-Verzeichnis einschl. 
+#		Unterverzeichnisse auf Existenz und legt bei Bedarf neu an. User-Info
+#		 nur noch bei Fehlern (Anzeige beschnittener Verzeichnispfade im 
+#		Kodi-Dialog nur verwirend).
 #	 
 def check_DataStores():
 	PLog('check_DataStores:')
@@ -144,8 +144,8 @@ def getDirZipped(path, zipf):
 #	persistenter Speicher. Der Name Dict lehnt sich an die
 #	allerdings wesentlich komfortablere Dict-Funktion in Plex an.
 #
-#	Den Dict-Vorteil, dass beliebige Strings als Kennzeichnung ver-
-#	wendet werden können, können wir bei Bedarf außerhalb von Dict
+#	Den Dict-Vorteil, beliebige Strings als Kennzeichnung zu ver-
+#	wenden, können wir bei Bedarf außerhalb von Dict
 #	mit der vars()-Funktion ausgleichen (siehe Zuweisungen). 
 #
 #	Falls (außerhalb von Dict) nötig, kann mit der Zusatzfunktion 
@@ -281,7 +281,7 @@ def CheckStorage(directory, limit):
 		PLog('Check %s, limit: %d, size: %s' % (str(cnt),limit, size))
 	return
 #--------------------------------- 
-# aus: 
+# Helper für CheckStorage, aus: 
 # https://stackoverflow.com/questions/1392413/calculating-a-directorys-size-using-python
 def getFolderSize(folder):
 	total_size = os.path.getsize(folder)
@@ -712,8 +712,6 @@ def RequestUrl(CallerName, url, GetOnlyHeader=None):
 		PLog("RequestUrl, step 1, called from %s" % CallerName)
 		req = urllib2.Request(url)	
 		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3')
-		# Quelle Language-Werte: Chrome-HAR
-		# req.add_header('Accept-Language',  'da_DK, en;q=0.9, da_DK;q=0.7')	# Debug
 		req.add_header('Accept-Language',  '%s, en;q=0.9, %s;q=0.7'	% (loc, loc))
 			
 		gcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)  
@@ -752,9 +750,7 @@ def RequestUrl(CallerName, url, GetOnlyHeader=None):
 ####################################################################################################
 # PlayVideo aus Kodi-Addon-ARDundZDF, Modul util  
 #	Details s. dort
-#	Behandl.- Untertitel entfällt hier.
-#	Zusätzl. Header-Check mit check auf Privatseite + Ausgabe eines kleinen
-#		Sperrvideos.
+#	Behandl.- Untertitel entfällt hier, dto. Header-Checks
 #
 def PlayVideo(url, title, thumb, Plot, sub_path=None, Merk='false'):	
 	PLog('PlayVideo:'); PLog(url); PLog(title);	 PLog(Plot); 
@@ -766,10 +762,11 @@ def PlayVideo(url, title, thumb, Plot, sub_path=None, Merk='false'):
 	page, msg = RequestUrl(CallerName='PlayAudio, Header-Check', url=url, GetOnlyHeader=True)
 	PLog(page)
 
-	if 'text/html' in str(page):				# ffmpeg-erzeugtes Fehlerbild-mp4-Video (10 sec)
-		PLog('Error: Textpage ' + url)
-		url =  os.path.join("%s", 'PrivatePage720x640.mp4') % (RESOURCES_PATH)			
-		return PlayVideo(url, title, thumb, Plot)			
+	# Fehlervideo nicht benötigt (Zugriff nur auf öffentl. Inhalte)
+	#if 'text/html' in str(page):				# ffmpeg-erzeugtes Fehlerbild-mp4-Video (10 sec)
+	#	PLog('Error: Textpage ' + url)
+	#	url =  os.path.join("%s", 'PrivatePage720x640.mp4') % (RESOURCES_PATH)			
+	#	return PlayVideo(url, title, thumb, Plot)			
 				
 	li = xbmcgui.ListItem(path=url)		
 	li.setArt({'thumb': thumb, 'icon': thumb})
