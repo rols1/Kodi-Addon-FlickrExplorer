@@ -4,6 +4,27 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Forum:		https://forum.kodi.tv/showthread.php?tid=347210
 --------------
 
+02.12.2019	0.6.6	Adaptation Kodi Matrix (compatibility Python2/Python3:
+			Modul updater: replaced with update-Modul from TuneIn2017.
+			addon.xml: dependency for script.module.kodi-six added.
+			Tests with Windows10 + Kodi Matrix (Git:20191128-19f60fecab) OK. 
+
+not on github	0.6.5	Adaptation Kodi Matrix (compatibility Python2/Python3:
+			Main / SearchUpdate: Fix reaction on Github-problem (interpretation of 
+			updater return was wrong).
+			Main: getHeaders removed (also in util_flickr) - not used.
+			Main: try/except for building OS_DETECT-string (IOError possible on iOS ARM 32-bit).
+			All quoted args for fparams treated with py2_encode, all UtfToStr-calls 
+			removed.
+
+not on github	0.6.4	Adaptation Kodi Matrix (compatibility Python2/Python3:
+			Modul util_flickr: decode('utf-8') replaced from ADDON_PATH, msg.encoding
+			removed in PLog(), old content in UtfToStr() replaced with py2_encode, all
+			in-Args in addDir treated with py2_encode, all terms in repl_json_chars() set 
+			to unicode, dto. in unescape(), dto. in transl_json, dto. in repl_json_chars,
+			no page.decode('utf-8') in RequestUrl if content is video.	
+			RLoad (Modul util_tunein2017): encoding="utf8" for reading file on PYTHON3.
+
 04.10.2019	0.6.3	ShowPhotoObject: background process for loading pics from flickr (performance).
 			ShowPhotoObject: create a ListItem for every pic (make browsing in the image list possible).	
 

@@ -2,14 +2,32 @@
 # util_flickr.py
 #	
 
-import os, sys, glob, shutil, time
-import urllib, urllib2, ssl
-from urlparse import parse_qsl
+# Python3-Kompatibilität:
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+# o. Auswirkung auf die unicode-Strings in PYTHON3:
+from kodi_six.utils import py2_encode, py2_decode
+
+# Standard:
+import os, sys
+PYTHON2 = sys.version_info.major == 2
+PYTHON3 = sys.version_info.major == 3
+if PYTHON2:					
+	from urllib import quote, unquote, quote_plus, unquote_plus, urlencode, urlretrieve 
+	from urllib2 import Request, urlopen, URLError 
+	from urlparse import urljoin, urlparse, urlunparse , urlsplit, parse_qs 
+elif PYTHON3:				
+	from urllib.parse import quote, unquote, quote_plus, unquote_plus, urlencode, urljoin, urlparse, urlunparse, urlsplit, parse_qs  
+	from urllib.request import Request, urlopen, urlretrieve
+	from urllib.error import URLError
+
+import glob, shutil, time, ssl, string
 import json				# json -> Textstrings
 import pickle			# persistente Variablen/Objekte
 import re				# u.a. Reguläre Ausdrücke, z.B. in CalculateDuration
 	
-import xbmc, xbmcplugin, xbmcgui, xbmcaddon
 
 # Globals
 NAME		= 'FlickrExplorer'
@@ -19,9 +37,9 @@ ADDON_ID      	= 'plugin.image.flickrexplorer'
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
 SETTINGS_LOC  	= SETTINGS.getAddonInfo('profile')
-ADDON_PATH    	= SETTINGS.getAddonInfo('path').decode('utf-8')	# Basis-Pfad Addon
+ADDON_PATH    	= SETTINGS.getAddonInfo('path')		# Basis-Pfad Addon
 ADDON_VERSION 	= SETTINGS.getAddonInfo('version')
-PLUGIN_URL 		= sys.argv[0]				# plugin://plugin.video.ardundzdf/
+PLUGIN_URL 		= sys.argv[0]						# plugin://plugin.video.ardundzdf/
 HANDLE			= int(sys.argv[1])
 
 DEBUG			= SETTINGS.getSetting('pref_info_debug')
@@ -48,8 +66,10 @@ DICTSTORE 		= os.path.join("%s/Dict") % ADDON_DATA
 def PLog(msg, loglevel=xbmc.LOGDEBUG):
 	if DEBUG == 'false':
 		return
-	if isinstance(msg, unicode):
-		msg = msg.encode('utf-8')
+		
+	#if isinstance(msg, str):		# entf. mit six
+	#	msg = msg.encode('utf-8')
+	
 	loglevel = xbmc.LOGNOTICE
 	# PLog('loglevel: ' + str(loglevel))
 	if loglevel >= 2:
@@ -130,13 +150,6 @@ def  make_newDataDir(store_Dirs):
 	else:
 		return str(exception)
 		
-#---------------------------
-# sichert Verz. für check_DataStores
-def getDirZipped(path, zipf):
-	PLog('getDirZipped:')	
-	for root, dirs, files in os.walk(path):
-		for file in files:
-			zipf.write(os.path.join(root, file)) 
 #----------------------------------------------------------------  
 # Die Funktion Dict speichert + lädt Python-Objekte mittels Pickle.
 #	Um uns das Handling mit keys zu ersparen, erzeugt die Funktion
@@ -265,7 +278,7 @@ def CheckStorage(directory, limit):
 	else:
 		limit = int(lm) * 1000000000 
 	size = 	getFolderSize(directory)			# 1. Belegung ermitteln
-	PLog('Check %s, limit: %d, size: %s' % (str(cnt), limit, size))
+	PLog('Check 1, limit: %s, size: %s' % (limit, size))
 	
 	if limit > int(size):						# Limit nicht erreicht
 		return
@@ -275,10 +288,10 @@ def CheckStorage(directory, limit):
 		cnt = cnt  + 1
 		dirlist = glob.glob(dirs)
 		dir_alt =  min(dirlist, key=os.path.getctime)
-		PLog('lösche Verz.: %s' % dir_alt)
+		PLog(u'lösche Verz.: %s' % dir_alt)
 		shutil.rmtree(dir_alt, ignore_errors=True) # kompl. Verz. löschen
 		size = 	getFolderSize(directory)		
-		PLog('Check %s, limit: %d, size: %s' % (str(cnt),limit, size))
+		PLog('Check %s, limit: %s, size: %s' % (str(cnt),limit, size))
 	return
 #--------------------------------- 
 # Helper für CheckStorage, aus: 
@@ -303,6 +316,19 @@ def UtfToStr(line):
 		return line
 	else:
 		return line	
+		
+def up_low(line, mode='up'):
+	try:
+		if PYTHON2:	
+			if isinstance(line, unicode):
+				line = line.encode('utf-8')
+		if mode == 'up':
+			return line.upper()
+		else:
+			return line.lower()
+	except Exception as exception:	
+		PLog('up_low: ' + str(exception))
+	return up_low
 #----------------------------------------------------------------  
 # In Kodi fehlen die summary- und tagline-Zeilen der Plexversion. Diese ersetzen wir
 #	hier einfach durch infoLabels['Plot'], wobei summary und tagline durch 
@@ -317,12 +343,13 @@ def UtfToStr(line):
 
 def addDir(li, label, action, dirID, fanart, thumb, fparams, summary='', tagline='', mediatype='', cmenu=True):
 	PLog('addDir:')
-	PLog('addDir - label: %s, action: %s, dirID: %s' % (label, action, dirID))
-	PLog('addDir - summary: %s, tagline: %s, mediatype: %s, cmenu: %s' % (summary, tagline, mediatype, cmenu))
-	
-	label=UtfToStr(label); thumb=UtfToStr(thumb); fanart=UtfToStr(fanart); 
-	summary=UtfToStr(summary); tagline=UtfToStr(tagline); 
-	fparams=UtfToStr(fparams);
+	PLog(type(label))
+	label=py2_encode(label)
+	PLog('addDir - label: {0}, action: {1}, dirID: {2}'.format(label, action, dirID))
+	PLog(type(summary)); PLog(type(tagline));
+	summary=py2_encode(summary); tagline=py2_encode(tagline); 
+	fparams=py2_encode(fparams); fanart=py2_encode(fanart); thumb=py2_encode(thumb);
+	PLog('addDir - summary: {0}, tagline: {1}, mediatype: {2}, cmenu: {3}'.format(summary, tagline, mediatype, cmenu))
 	
 	li.setLabel(label)			# Kodi Benutzeroberfläche: Arial-basiert für arabic-Font erf.
 	PLog('summary, tagline: %s, %s' % (summary, tagline))
@@ -345,8 +372,8 @@ def addDir(li, label, action, dirID, fanart, thumb, fparams, summary='', tagline
 	xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
 	PLog('PLUGIN_URL: ' + PLUGIN_URL)	# plugin://plugin.video.ardundzdf/
 	PLog('HANDLE: ' + str(HANDLE))
-	url = PLUGIN_URL+"?action="+action+"&dirID="+dirID+"&fanart="+fanart+"&thumb="+thumb+urllib.quote_plus(fparams)
-	PLog("addDir_url: " + urllib.unquote_plus(url))
+	url = PLUGIN_URL+"?action="+action+"&dirID="+dirID+"&fanart="+fanart+"&thumb="+thumb+quote_plus(fparams)
+	PLog("addDir_url: " + unquote_plus(url))
 		
 		
 	xbmcplugin.addDirectoryItem(handle=HANDLE,url=url,listitem=li,isFolder=isFolder)
@@ -388,8 +415,12 @@ def RLoad(fname, abs_path=False): # ersetzt Resource.Load von Plex
 	path = os.path.join(fname) # abs. Pfad
 	PLog('RLoad: %s' % str(fname))
 	try:
-		with open(path,'r') as f:
-			page = f.read()		
+		if PYTHON2:
+			with open(path,'r') as f:
+				page = f.read()		
+		else:
+			with open(path,'r', encoding="utf8") as f:
+				page = f.read()		
 	except Exception as exception:
 		PLog(str(exception))
 		page = ''
@@ -397,59 +428,41 @@ def RLoad(fname, abs_path=False): # ersetzt Resource.Load von Plex
 #----------------------------------------------------------------
 # Gegenstück zu RLoad - speichert Inhalt page in Datei fname im  
 #	Dateisystem. PluginAbsPath muss in fname enthalten sein,
-#	falls im Pluginverz. gespeichert werden soll   
-def RSave(fname, page): 
+#	falls im Pluginverz. gespeichert werden soll 
+#  Migration Python3: immer utf8
+# 
+def RSave(fname, page, withcodec=False): 
 	PLog('RSave: %s' % str(fname))
+	PLog(withcodec)
 	path = os.path.join(fname) # abs. Pfad
 	msg = ''					# Rückgabe leer falls OK
 	try:
-		with open(path,'w') as f:
-			f.write(page)		
+		if PYTHON2:
+			if withcodec:		# 14.11.0219 Kompat.-Maßnahme
+				import codecs	#	für DownloadExtern
+				with codecs.open(path,'w', encoding='utf-8') as f:
+					f.write(page)	
+			else:
+				with open(path,'w') as f:
+					f.write(page)		
+		else:
+			with open(path,'w', encoding="utf8") as f:
+				f.write(page)
+		
 	except Exception as exception:
 		msg = str(exception)
 		PLog(msg)
 	return msg
 #----------------------------------------------------------------  
-# Bsp.: #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=61000,CODECS="mp4a.40.2"
-def GetAttribute(text, attribute, delimiter1 = '=', delimiter2 = ','):
-	PLog('GetAttribute:')
-	if attribute == 'CODECS':	# Trenner = Komma, nur bei CODEC ist Inhalt 'umrahmt' 
-		delimiter1 = '="'
-		delimiter2 = '"'
-	x = text.find(attribute)
-	if x > -1:
-		y = text.find(delimiter1, x + len(attribute)) + len(delimiter1)
-		z = text.find(delimiter2, y)
-		if z == -1:
-			z = len(text)
-		return text[y:z].strip()
-	else:
-		return ''
-#----------------------------------------------------------------  
-def repl_dop(liste):	# Doppler entfernen, im Python-Script OK, Problem in Plex - s. PageControl
-	mylist=liste
-	myset=set(mylist)
-	mylist=list(myset)
-	mylist.sort()
-	return mylist
-#----------------------------------------------------------------  
-def repl_char(cut_char, line):	# problematische Zeichen in Text entfernen, wenn replace nicht funktioniert
-	line_ret = line				# return line bei Fehlschlag
-	pos = line_ret.find(cut_char)
-	while pos >= 0:
-		line_l = line_ret[0:pos]
-		line_r = line_ret[pos+len(cut_char):]
-		line_ret = line_l + line_r
-		pos = line_ret.find(cut_char)
-		#PLog(cut_char); PLog(pos); PLog(line_l); PLog(line_r); PLog(line_ret)	# bei Bedarf	
-	return line_ret
-#----------------------------------------------------------------
 #	doppelte utf-8-Enkodierung führt an manchen Stellen zu Sonderzeichen
 #  	14.04.2019 entfernt: (':', ' ')
 def repl_json_chars(line):	# für json.loads (z.B.. in router) json-Zeichen in line entfernen
 	line_ret = line
-	for r in	(('"', ''), ('\\', ''), ('\'', '')
-		, ('&', 'und'), ('(', '<'), (')', '>'),  ('∙', '|')):			
+	#PLog(type(line_ret))
+	for r in	((u'"', u''), (u'\\', u''), (u'\'', u'')
+		, (u'&', u'und'), ('(u', u'<'), (u')', u'>'),  (u'∙', u'|')
+		, (u'„', u'>'), (u'“', u'<'), (u'”', u'>'),(u'°', u' Grad')
+		, (u'\r', u'')):			
 		line_ret = line_ret.replace(*r)
 	
 	return line_ret
@@ -527,28 +540,6 @@ def blockextract(blockmark, blockendmark, mString):  # extrahiert Blöcke begren
 	# PLog(rlist)		
 	return rlist  
 #----------------------------------------------------------------  
-def my_rfind(left_pattern, start_pattern, line):  # sucht ab start_pattern rückwärts + erweitert 
-#	start_pattern nach links bis left_pattern.
-#	Rückgabe: Position von left_pattern und String ab left_pattern bis einschl. start_pattern	
-#	Mit Python's rfind-Funktion nicht möglich
-
-	# PLog(left_pattern); PLog(start_pattern); 
-	if left_pattern == '' or start_pattern == '' or line.find(start_pattern) == -1:
-		return -1, ''
-	startpos = line.find(start_pattern)
-	# PLog(startpos); PLog(line[startpos-10:startpos+len(start_pattern)]); 
-	i = 1; pos = startpos
-	while pos >= 0:
-		newline = line[pos-i:startpos+len(start_pattern)]	# newline um 1 Zeichen nach links erweitern
-		# PLog(newline)
-		if newline.find(left_pattern) >= 0:
-			leftpos = pos						# Position left_pattern in line
-			leftstring = newline
-			# PLog(leftpos);Log(newline)
-			return leftpos, leftstring
-		i = i+1				
-	return -1, ''								# Fehler, wenn Anfang line erreicht
-#----------------------------------------------------------------  	
 def cleanhtml(line): # ersetzt alle HTML-Tags zwischen < und >  mit 1 Leerzeichen
 	cleantext = line
 	cleanre = re.compile('<.*?>')
@@ -556,99 +547,112 @@ def cleanhtml(line): # ersetzt alle HTML-Tags zwischen < und >  mit 1 Leerzeiche
 	return cleantext
 #----------------------------------------------------------------  	
 def decode_url(line):	# in URL kodierte Umlaute und & wandeln, Bsp. f%C3%BCr -> für, 	&amp; -> &
-	urllib.unquote(line)
-	line = line.replace('&amp;', '&')
+	line = py2_decode(line)
+	unquote(line)
+	line = line.replace(u'&amp;', u'&')
 	return line
-#----------------------------------------------------------------  	
 #----------------------------------------------------------------  
+# Migration PY2/PY3: py2_decode aus kodi-six
 def make_filenames(title):
+	PLog('make_filenames:')
 	# erzeugt - hoffentlich - sichere Dateinamen (ohne Extension)
 	# zugeschnitten auf Titelerzeugung in meinen Plugins 
 	
-	title = UtfToStr(title)				# in Kodi-Version erforderlich
-	fname = transl_umlaute(title)		# Umlaute
-	# Ersatz: 	Leerz., Pipe, mehrf. Unterstriche -> 1 Unterstrich, Doppelp. -> Bindestrich	
-	#			+ /  -> Bindestrich	
-	# Entferne: Frage-, Ausrufez., Hochkomma, Komma und #@!%^&*()
-	fname = (fname.replace(' ','_').replace('|','_').replace('___','_').replace('.','_')) 
-	fname = (fname.replace('__','_').replace(':','-'))
-	fname = (fname.replace('?','').replace('!','').replace('"','').replace('#','')
-		.replace('*','').replace('@','').replace('%','').replace('^','').replace('&','')
-		.replace('(','').replace(')','').replace(',','').replace('+','-').replace('/','-'))	
+	title = py2_decode(title)
+	fname = transl_umlaute(title)		# Umlaute	
 	
-	# Die Variante .join entfällt leider, da die Titel hier bereits
-	# in Unicode ankommen -	Plex code/sandbox.py:  
-	# 		'str' object has no attribute '__iter__': 
-	# valid_chars = "-_ %s%s" % (string.ascii_letters, string.digits)
-	# fname = ''.join(c for c in fname if c in valid_chars)
+	valid_chars = "-_ %s%s" % (string.ascii_letters, string.digits)
+	fname = ''.join(c for c in fname if c in valid_chars)
+	fname = fname.replace(u' ', u'_')
+
 	return fname
 #----------------------------------------------------------------  
 def transl_umlaute(line):	# Umlaute übersetzen, wenn decode nicht funktioniert
-	line = UtfToStr(line)				# in Kodi-Version erforderlich
+	PLog('transl_umlaute:')
+#	line= py2_decode(line)	
+	line= str(line)	
 	line_ret = line
-	line_ret = line_ret.replace("Ä", "Ae", len(line_ret))
-	line_ret = line_ret.replace("ä", "ae", len(line_ret))
-	line_ret = line_ret.replace("Ü", "Ue", len(line_ret))
-	line_ret = line_ret.replace('ü', 'ue', len(line_ret))
-	line_ret = line_ret.replace("Ö", "Oe", len(line_ret))
-	line_ret = line_ret.replace("ö", "oe", len(line_ret))
-	line_ret = line_ret.replace("ß", "ss", len(line_ret))	
+	line_ret = line_ret.replace(u"Ä", u"Ae", len(line_ret))
+	line_ret = line_ret.replace(u"ä", u"ae", len(line_ret))
+	line_ret = line_ret.replace(u"Ü", u"Ue", len(line_ret))
+	line_ret = line_ret.replace(u'ü', u'ue', len(line_ret))
+	line_ret = line_ret.replace(u"Ö", u"Oe", len(line_ret))
+	line_ret = line_ret.replace(u"ö", u"oe", len(line_ret))
+	line_ret = line_ret.replace(u"ß", u"ss", len(line_ret))	
 	return line_ret
+
 #---------------------------------------------------------------- 
+# Migration PY2/PY3: py2_decode aus kodi-six
 def unescape(line):
 # HTML-Escapezeichen in Text entfernen, bei Bedarf erweitern. ARD auch &#039; statt richtig &#39;	
 #					# s.a.  ../Framework/api/utilkit.py
-#					# Ev. erforderliches Encoding vorher durchführen 
-#	
+#					# Ev. erforderliches Encoding vorher durchführen - Achtung in Kodis 
+#					#	Python-Version v2.26.0 'ascii'-codec-Error bei mehrfachem decode
+#
+	# PLog(type(line))
 	if line == None or line == '':
 		return ''	
-	for r in	(("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">")
-		, ("&#39;", "'"), ("&#039;", "'"), ("&quot;", '"'), ("&#x27;", "'")
-		, ("&ouml;", "ö"), ("&auml;", "ä"), ("&uuml;", "ü"), ("&szlig;", "ß")
-		, ("&Ouml;", "Ö"), ("&Auml;", "Ä"), ("&Uuml;", "Ü"), ("&apos;", "'")
-		, ("&nbsp;|&nbsp;", ""), ("&nbsp;", ""), 
+	line = py2_decode(line)
+	for r in	((u"&amp;", u"&"), (u"&lt;", u"<"), (u"&gt;", u">")
+		, (u"&#39;", u"'"), (u"&#039;", u"'"), (u"&quot;", u'"'), (u"&#x27;", u"'")
+		, (u"&ouml;", u"ö"), (u"&auml;", u"ä"), (u"&uuml;", u"ü"), (u"&szlig;", u"ß")
+		, (u"&Ouml;", u"Ö"), (u"&Auml;", u"Ä"), (u"&Uuml;", u"Ü"), (u"&apos;", u"'")
+		, (u"&nbsp;|&nbsp;", u""), (u"&nbsp;", u""), 
 		# Spezialfälle:
 		#	https://stackoverflow.com/questions/20329896/python-2-7-character-u2013
 		#	"sächsischer Genetiv", Bsp. Scott's
 		#	Carriage Return (Cr)
-		("–", "-"), ("&#x27;", "'"), ("&#xD;", ""), ("\xc2\xb7", "-"),
-		('undoacute;', 'o'), ('&eacute;', 'e'), ('&egrave;', 'e'),
-		('%u0142a', 'la')):
-			
+		(u"–", u"-"), (u"&#x27;", u"'"), (u"&#xD;", u""), (u"\xc2\xb7", u"-"),
+		(u'undoacute;', u'o'), (u'&eacute;', u'e'), (u'&egrave;', u'e'),
+		(u'&atilde;', u'a')):
 		line = line.replace(*r)
 	return line
 #----------------------------------------------------------------  
+# Migration PY2/PY3: py2_decode aus kodi-six
 def transl_json(line):	# json-Umlaute übersetzen
 	# Vorkommen: Loader-Beiträge ZDF/3Sat (ausgewertet als Strings)
 	# Recherche Bsp.: https://www.compart.com/de/unicode/U+00BA
 	# 
-#	line = UtfToStr(line)
-	for r in (('\\u00E4', "ä"), ('\\u00C4', "Ä"), ('\u00F6', "ö")		
-		, ('\\u00C6', "Ö"), ('\\u00D6', "Ö"),('\\u00FC', "ü"), ('\\u00DC', 'Ü')
-		, ('\\u00DF', 'ß'), ('\\u0026', '&'), ('\\u00AB', '"')
-		, ('\\u00BB', '"')
-		, ('\xc3\xa2', '*')):	# a mit Circumflex:  â<U+0088><U+0099> bzw. \xc3\xa2
+	line= py2_decode(line)	
+	#PLog(line)
+	for r in ((u'\\u00E4', u"ä"), (u'\\u00C4', u"Ä"), (u'\\u00F6', u"ö")		
+		, (u'\\u00C6', u"Ö"), (u'\\u00D6', u"Ö"),(u'\\u00FC', u"ü"), (u'\\u00DC', u'Ü')
+		, (u'\\u00DF', u'ß'), (u'\\u0026', u'&'), (u'\\u00AB', u'"')
+		, (u'\\u00BB', u'"')
+		, (u'\xc3\xa2', u'*')			# a mit Circumflex:  â<U+0088><U+0099> bzw. \xc3\xa2
+		, (u'u00B0', u' Grad')		# u00BA -> Grad (3Sat, 37 Grad)	
+		, (u'u00EA', u'e')			# 3Sat: Fête 
+		, (u'u00E9', u'e')			# 3Sat: Fabergé
+		, (u'u00E6', u'ae')):			# 3Sat: Kjaerstad
 
 		line = line.replace(*r)
+	#PLog(line)
 	return line	
 #---------------------------------------------------------------- 
 # Format seconds	86400	(String, Int, Float)
-# Rückgabe:  		1d, 0h, 0m, 0s	
-def seconds_translate(seconds):
+# Rückgabe:  		1d, 0h, 0m, 0s	(days=True)
+#		oder:		0h, 0d				
+def seconds_translate(seconds, days=False):
+	#PLog('seconds_translate:')
+	#PLog(seconds)
 	if seconds == '' or seconds == 0  or seconds == 'null':
 		return ''
 	if int(seconds) < 60:
 		return "%s sec" % seconds
 	seconds = float(seconds)
-	day = seconds / (24 * 3600)
+	day = seconds / (24 * 3600)	
 	time = seconds % (24 * 3600)
 	hour = time / 3600
 	time %= 3600
 	minutes = time / 60
 	time %= 60
 	seconds = time
-	# return "%dd, %dh, %dm, %ds" % (day,hour,minutes,seconds)
-	return  "%d:%02d" % (hour, minutes)		
+	if days:
+		#PLog("%dd, %dh, %dm, %ds" % (day,hour,minutes,seconds))
+		return "%dd, %dh, %dm, %ds" % (day,hour,minutes,seconds)
+	else:
+		#PLog("%d:%02d" % (hour, minutes))
+		return  "%d:%02d" % (hour, minutes)		
 #---------------------------------------------------------------- 	
 # Holt User-Eingabe für Suche ab
 #	s.a. get_query (für Search , ZDF_Search)
@@ -698,55 +702,53 @@ def L(string):
 # Für Flickr verzichten wir auf die 2. Stufe mit Zertifikaten wie bei tunein2017 und ardundzdf - wg.
 #	api-Nutzung nicht benötigt.
 #
-def RequestUrl(CallerName, url, GetOnlyHeader=None):
+def RequestUrl(CallerName, url):
 	PLog('RequestUrl: ' + url)
 	UrlopenTimeout = 3			# Timeout sec
 	
 	msg=''
 	loc = Dict('load', 'loc')						# Bsp. fr, 	loc_browser nicht benötigt
 	PLog('loc: ' + loc)	
+	url = py2_encode(url)
 
 	msg=''
 	PLog('page1:')			
 	try:																# Step 1: urllib2.Request
 		PLog("RequestUrl, step 1, called from %s" % CallerName)
-		req = urllib2.Request(url)	
+		req = Request(url)	
 		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3')
 		req.add_header('Accept-Language',  '%s, en;q=0.9, %s;q=0.7'	% (loc, loc))
 			
 		gcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)  
 		gcontext.check_hostname = False
 		gcontext.verify_mode = ssl.CERT_NONE
-		ret = urllib2.urlopen(req, context=gcontext, timeout=UrlopenTimeout)
+		ret = urlopen(req, context=gcontext, timeout=UrlopenTimeout)
 		
-		if GetOnlyHeader:
-			PLog("GetOnlyHeader:")
-			page = getHeaders(ret)		# Dict
-			PLog(page) 
-			return page, ''
-		else:
-			compressed = ret.info().get('Content-Encoding') == 'gzip'
-			PLog("compressed: " + str(compressed))
-			page = ret.read()
+		compressed = ret.info().get('Content-Encoding') == 'gzip'
+		PLog("compressed: " + str(compressed))
+		page = ret.read()
+		PLog(len(page))
+		if compressed:
+			buf = StringIO(page)
+			f = gzip.GzipFile(fileobj=buf)
+			page = f.read()
 			PLog(len(page))
-			if compressed:
-				buf = StringIO(page)
-				f = gzip.GzipFile(fileobj=buf)
-				page = f.read()
-				PLog(len(page))
-			ret.close()
-			# PLog(page[:160])
+		ret.close()
+		# PLog(page[:160])
 	except Exception as exception:
-		error_txt = "RequestUrl: %s-1: %s" % (CallerName, repr(exception)) 
+		error_txt = "RequestUrl: %s-1: %s" % (CallerName, str(exception)) 
 		error_txt = error_txt + ' | ' + url				 			 	 
 		msg =  error_txt
 		PLog(msg)
-		# msg = L('keine Eintraege gefunden') + " | %s" % msg	
 		page=''
-					
-	PLog(page[:100])								# bei Bedarf
-	return page, msg
-	
+				
+	if '/video_download.gne' in url:		# Videodaten unverändert weiter 
+		return page, msg
+	else:
+		PLog(page[:100])
+		page = page.decode('utf-8')
+		return page, msg		
+		
 ####################################################################################################
 # PlayVideo aus Kodi-Addon-ARDundZDF, Modul util  
 #	Details s. dort
@@ -759,10 +761,9 @@ def PlayVideo(url, title, thumb, Plot, sub_path=None, Merk='false'):
 	# Header-Check: Flickr gibt bei Fehlern HTML-Seite zurück 
 	#	Bsp.:  <h1>This page is private.</h1>
 	#	OK: content-type': 'video/mp4'
-	page, msg = RequestUrl(CallerName='PlayAudio, Header-Check', url=url, GetOnlyHeader=True)
-	PLog(page)
 
 	# Fehlervideo nicht benötigt (Zugriff nur auf öffentl. Inhalte)
+	# 01.12.2019 Header-Check gelöscht, dto. in RequestUrl,
 	#if 'text/html' in str(page):				# ffmpeg-erzeugtes Fehlerbild-mp4-Video (10 sec)
 	#	PLog('Error: Textpage ' + url)
 	#	url =  os.path.join("%s", 'PrivatePage720x640.mp4') % (RESOURCES_PATH)			
@@ -772,9 +773,17 @@ def PlayVideo(url, title, thumb, Plot, sub_path=None, Merk='false'):
 	li.setArt({'thumb': thumb, 'icon': thumb})
 	
 	Plot=Plot.replace('||', '\n')				# || Code für LF (\n scheitert in router)
-	# li.setProperty('IsPlayable', 'true')		# hier unwirksam
-	li.setInfo(type="video", infoLabels={"Title": title, "Plot": Plot, "mediatype": "video"})
-		
+	infoLabels = {}
+	infoLabels['title'] = title
+	infoLabels['sorttitle'] = title
+	#infoLabels['genre'] = genre
+	#infoLabels['plot'] = Plot
+	#infoLabels['plotoutline'] = Plot
+	infoLabels['tvshowtitle'] = Plot
+	infoLabels['tagline'] = Plot
+	infoLabels['mediatype'] = 'video'
+	li.setInfo(type="Video", infoLabels=infoLabels)
+			
 	# Abfrage: ist gewählter Eintrag als Video deklariert? - Falls ja,	# IsPlayable-Test
 	#	erfolgt der Aufruf indirekt (setResolvedUrl). Falls nein,
 	#	wird der Player direkt aufgerufen. Direkter Aufruf ohne IsPlayable-Eigenschaft 

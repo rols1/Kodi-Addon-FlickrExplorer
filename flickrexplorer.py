@@ -1,19 +1,32 @@
 # -*- coding: utf-8 -*-
-# XBM
-import xbmc	
-import xbmcaddon
-import xbmcplugin		
-import xbmcgui
 
-# Python
-import urllib			# urllib.quote()
-from urlparse import parse_qsl
-import urllib2			# urllib2.Request
-import ssl				# HTTPS-Handshake
-from StringIO import StringIO
-import gzip, zipfile
+# Python3-Kompatibilität:
+from __future__ import absolute_import		# sucht erst top-level statt im akt. Verz. 
+from __future__ import division				# // -> int, / -> float
+from __future__ import print_function		# PYTHON2-Statement -> Funktion
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+
+# o. Auswirkung auf die unicode-Strings in PYTHON3:
+from kodi_six.utils import py2_encode, py2_decode
 
 import os, sys
+PYTHON2 = sys.version_info.major == 2
+PYTHON3 = sys.version_info.major == 3
+if PYTHON2:
+	from urllib import quote, unquote, quote_plus, unquote_plus, urlencode, urlretrieve
+	from urllib2 import Request, urlopen, URLError 
+	from urlparse import urljoin, urlparse, urlunparse, urlsplit, parse_qs
+elif PYTHON3:
+	from urllib.parse import quote, unquote, quote_plus, unquote_plus, urlencode, urljoin, urlparse, urlunparse, urlsplit, parse_qs
+	from urllib.request import Request, urlopen, urlretrieve
+	from urllib.error import URLError
+
+
+# Python
+import ssl				# HTTPS-Handshake
+from io import BytesIO	# Python2+3 -> get_page (compressed Content), Ersatz für StringIO
+import gzip, zipfile
+
 from threading import Thread	# thread_getpic
 import shutil					# thread_getpic
 
@@ -27,11 +40,10 @@ import resources.lib.updater 			as updater
 import resources.lib.util_flickr as util
 
 PLog=util.PLog; check_DataStores=util.check_DataStores;  make_newDataDir=util. make_newDataDir; 
-getDirZipped=util.getDirZipped; Dict=util.Dict; name=util.name; ClearUp=util.ClearUp; 
+Dict=util.Dict; name=util.name; ClearUp=util.ClearUp; 
 UtfToStr=util.UtfToStr; addDir=util.addDir; R=util.R; RLoad=util.RLoad; RSave=util.RSave; 
-GetAttribute=util.GetAttribute; repl_dop=util.repl_dop; repl_char=util.repl_char; 
 repl_json_chars=util.repl_json_chars; mystrip=util.mystrip; DirectoryNavigator=util.DirectoryNavigator; 
-stringextract=util.stringextract; blockextract=util.blockextract; my_rfind=util.my_rfind; 
+stringextract=util.stringextract; blockextract=util.blockextract; 
 cleanhtml=util.cleanhtml; decode_url=util.decode_url; unescape=util.unescape; 
 transl_json=util.transl_json; repl_json_chars=util.repl_json_chars; seconds_translate=util.seconds_translate; 
 get_keyboard_input=util.get_keyboard_input; L=util.L; RequestUrl=util.RequestUrl; PlayVideo=util.PlayVideo;
@@ -39,8 +51,8 @@ make_filenames=util.make_filenames; CheckStorage=util.CheckStorage
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.6.3'	
-VDATE = '04.10.2019'
+VERSION =  '0.6.6'	
+VDATE = '02.12.2019'
 
 # 
 #	
@@ -108,7 +120,7 @@ ADDON_ID      	= 'plugin.image.flickrexplorer'
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
 SETTINGS_LOC  	= SETTINGS.getAddonInfo('profile')
-ADDON_PATH    	= SETTINGS.getAddonInfo('path').decode('utf-8')
+ADDON_PATH    	= SETTINGS.getAddonInfo('path')
 ADDON_VERSION 	= SETTINGS.getAddonInfo('version')
 PLUGIN_URL 		= sys.argv[0]
 HANDLE			= int(sys.argv[1])
@@ -126,17 +138,21 @@ PLog(DICTSTORE);
 check 			= check_DataStores()	# Check /Initialisierung / Migration 
 PLog('check: ' + str(check))
 										
-from platform import system, architecture, machine, release, version	# Debug
-OS_SYSTEM = system()
-OS_ARCH_BIT = architecture()[0]
-OS_ARCH_LINK = architecture()[1]
-OS_MACHINE = machine()
-OS_RELEASE = release()
-OS_VERSION = version()
-OS_DETECT = OS_SYSTEM + '-' + OS_ARCH_BIT + '-' + OS_ARCH_LINK
-OS_DETECT += ' | host: [%s][%s][%s]' %(OS_MACHINE, OS_RELEASE, OS_VERSION)
+try:	# 28.11.2019 exceptions.IOError möglich, Bsp. iOS ARM (Thumb) 32-bit
+	from platform import system, architecture, machine, release, version	# Debug
+	OS_SYSTEM = system()
+	OS_ARCH_BIT = architecture()[0]
+	OS_ARCH_LINK = architecture()[1]
+	OS_MACHINE = machine()
+	OS_RELEASE = release()
+	OS_VERSION = version()
+	OS_DETECT = OS_SYSTEM + '-' + OS_ARCH_BIT + '-' + OS_ARCH_LINK
+	OS_DETECT += ' | host: [%s][%s][%s]' %(OS_MACHINE, OS_RELEASE, OS_VERSION)
+except:
+	OS_DETECT =''
+	
 KODI_VERSION = xbmc.getInfoLabel('System.BuildVersion')
-
+	
 PLog('Addon: ClearUp')
 ARDStartCacheTime = 300						# 5 Min.	
  
@@ -228,19 +244,26 @@ def Main():
 	call_update = False
 	if SETTINGS.getSetting('pref_info_update') == 'true': # Updatehinweis beim Start des Addons 
 		ret = updater.update_available(VERSION)
-		int_lv = ret[0]			# Version Github
-		int_lc = ret[1]			# Version aktuell
-		latest_version = ret[2]	# Version Github, Format 1.4.1
-		
-		if int_lv > int_lc:								# Update-Button "installieren" zeigen
-			call_update = True
-			title = 'neues Update vorhanden - jetzt installieren'
-			summary = 'Addon aktuell: ' + VERSION + ', neu auf Github: ' + latest_version
-			# Bsp.: https://github.com/rols1/Kodi-Addon-ARDundZDF/releases/download/0.5.4/Kodi-Addon-ARDundZDF.zip
-			url = 'https://github.com/{0}/releases/download/{1}/{2}.zip'.format(GITHUB_REPOSITORY, latest_version, REPO_NAME)
-			fparams="&fparams={'url': '%s', 'ver': '%s'}" % (urllib.quote_plus(url), latest_version) 
-			addDir(li=li, label=title, action="dirList", dirID="resources.lib.updater.update", fanart=R(FANART), 
-				thumb=R(ICON_UPDATER_NEW), fparams=fparams, summary=summary)
+		if ret[0] == False:		
+			msg1 = L("Github ist nicht errreichbar")
+			msg2 = 'update_available: False'
+			PLog("%s | %s" % (msg1, msg2))
+			xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
+		else:
+			int_lv = ret[0]			# Version Github
+			int_lc = ret[1]			# Version aktuell
+			latest_version = ret[2]	# Version Github, Format 1.4.1
+			
+			if int_lv > int_lc:								# Update-Button "installieren" zeigen
+				call_update = True
+				title = 'neues Update vorhanden - jetzt installieren'
+				summary = 'Addon aktuell: ' + VERSION + ', neu auf Github: ' + latest_version
+				# Bsp.: https://github.com/rols1/Kodi-Addon-ARDundZDF/releases/download/0.5.4/Kodi-Addon-ARDundZDF.zip
+				url = 'https://github.com/{0}/releases/download/{1}/{2}.zip'.format(GITHUB_REPOSITORY, latest_version, REPO_NAME)
+				url=py2_encode(url);
+				fparams="&fparams={'url': '%s', 'ver': '%s'}" % (quote_plus(url), latest_version) 
+				addDir(li=li, label=title, action="dirList", dirID="resources.lib.updater.update", fanart=R(FANART), 
+					thumb=R(ICON_UPDATER_NEW), fparams=fparams, summary=summary)
 			
 	if call_update == False:							# Update-Button "Suche" zeigen	
 		title = 'Addon-Update | akt. Version: ' + VERSION + ' vom ' + VDATE	
@@ -252,11 +275,11 @@ def Main():
 	
 	# Info-Button
 	summary = L('Stoerungsmeldungen an Forum oder rols1@gmx.de')
-	tagline = 'für weitere Infos (changelog.txt) klicken'
+	tagline = u'für weitere Infos (changelog.txt) klicken'
 	path = os.path.join(ADDON_PATH, "changelog.txt") 
-	title = "Änderungsliste (changelog.txt)"
-	title = UtfToStr(title); 
-	fparams="&fparams={'path': '%s', 'title': '%s'}" % (urllib2.quote(path), urllib2.quote(title))
+	title = u"Änderungsliste (changelog.txt)"
+	path=py2_encode(path); title=py2_encode(title); 
+	fparams="&fparams={'path': '%s', 'title': '%s'}" % (quote(path), quote(title))
 	addDir(li=li, label='Info', action="dirList", dirID="ShowText", fanart=R(FANART), thumb=R(ICON_INFO), 
 		fparams=fparams, summary=summary, tagline=tagline)
 	
@@ -306,7 +329,8 @@ def home(li,user_id,username='', returnto=''):
 		if username == '':
 			user_id,nsid,username,realname = GetUserID(user_id) 					
 		title = L('Zurueck zu') + ' ' + username
-		fparams="&fparams={'username': '%s', 'user_id': '%s'}"  % (urllib2.quote(username), urllib2.quote(user_id))
+		username=py2_encode(username); user_id=py2_encode(user_id); 
+		fparams="&fparams={'username': '%s', 'user_id': '%s'}"  % (quote(username), quote(user_id))
 		addDir(li=li, label=title, action="dirList", dirID="MyMenu", fanart=R('homePeople.png'), 
 			thumb=R('homePeople.png'), fparams=fparams)
 		return li
@@ -353,7 +377,8 @@ def MyMenu(username='',user_id=''):
 	
 	title = 'Search: content owned by %s' % (username)
 	summ = L('Suche') + ' ' + L('Fotos')
-	fparams="&fparams={'user_id': '%s', 'title': '%s'}"  % (nsid, urllib2.quote(title))
+	title=py2_encode(title);
+	fparams="&fparams={'user_id': '%s', 'title': '%s'}"  % (nsid, quote(title))
 	addDir(li=li, label=title, action="dirList", dirID="Search", fanart=R(ICON_SEARCH), thumb=R(ICON_SEARCH), 
 		fparams=fparams, summary=summ)
 	
@@ -362,13 +387,15 @@ def MyMenu(username='',user_id=''):
 	addDir(li=li, label=title, action="dirList", dirID="Search_Work", fanart=R('icon-stream.png'), thumb=R('icon-stream.png'), 
 		fparams=fparams, summary=title)
 				
-	title='%s: Albums'	% username		
-	fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '1'}" % ( urllib2.quote(title), nsid)
+	title='%s: Albums'	% username
+	title=py2_encode(title);		
+	fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '1'}" % ( quote(title), nsid)
 	addDir(li=li, label=title, action="dirList", dirID="MyAlbums", fanart=R('icon-album.png'), thumb=R('icon-album.png'), 
 		fparams=fparams, summary=title)
 				
-	title='%s: Galleries'	% username		
-	fparams="&fparams={'title': '%s', 'user_id': '%s'}" % (urllib2.quote(title), nsid)
+	title='%s: Galleries'	% username	
+	title=py2_encode(title);	
+	fparams="&fparams={'title': '%s', 'user_id': '%s'}" % (quote(title), nsid)
 	addDir(li=li, label=title, action="dirList", dirID="MyGalleries", fanart=R('icon-gallery.png'), 
 		thumb=R('icon-gallery.png'), fparams=fparams, summary=title)
 				
@@ -421,10 +448,8 @@ def MyGalleries(title, user_id, offset=0):
 	for r in records:
 		title 		= stringextract('<title>', '</title>', records[i])
 		title		= unescape(title)
-		title		= title.decode(encoding="utf-8")
 		url 		= stringextract('url="', '"', records[i])
 		username 	= stringextract('username="', '"', records[i])
-		username	= username.decode(encoding="utf-8")
 		count_photos = stringextract('count_photos="', '"', records[i])
 		summ = '%s: %s %s' % (username, count_photos, L('Fotos'))
 		img_src = R(ICON_FLICKR)
@@ -439,7 +464,8 @@ def MyGalleries(title, user_id, offset=0):
 			gallery_id = url.split('/')[-2]	# Url-Ende bei FlickrPeople ohne / 	
 				
 		PLog(i); PLog(url);PLog(title);PLog(img_src); PLog(gallery_id);
-		fparams="&fparams={'title': '%s', 'gallery_id': '%s', 'user_id': '%s'}" % (urllib2.quote(title), gallery_id, user_id)
+		title=py2_encode(title);
+		fparams="&fparams={'title': '%s', 'gallery_id': '%s', 'user_id': '%s'}" % (quote(title), gallery_id, user_id)
 		addDir(li=li, label=title, action="dirList", dirID="Gallery_single", fanart=R(img_src), thumb=R(img_src), 
 			fparams=fparams, summary=summ)
 				
@@ -449,14 +475,16 @@ def MyGalleries(title, user_id, offset=0):
 	if (int(offset)+100) < int(pagemax):
 		offset = min(int(offset) +100, pagemax)
 		PLog(offset)
-		fparams="&fparams={'title': '%s', 'offset': '%s'}" % (urllib2.quote(title_org), offset)
+		title_org=py2_encode(title_org);
+		fparams="&fparams={'title': '%s', 'offset': '%s'}" % (quote(title_org), offset)
 		addDir(li=li, label=title_org, action="dirList", dirID="MyGalleries", fanart=R(ICON_MEHR_100), 
 			thumb=R(ICON_MEHR_100), fparams=fparams, summary=L('Mehr (+ 100)'), tagline=tag)
 	# weniger
 	if int(offset) > 100:
 		offset = max(int(offset)-100-max_count, 0)
 		PLog(offset)
-		fparams="&fparams={'title': '%s', 'offset': '%s'}" % (urllib2.quote(title_org), offset)
+		title_org=py2_encode(title_org);
+		fparams="&fparams={'title': '%s', 'offset': '%s'}" % (quote(title_org), offset)
 		addDir(li=li, label=title_org, action="dirList", dirID="MyGalleries", fanart=R(ICON_WENIGER_100), 
 			thumb=R(ICON_WENIGER_100), fparams=fparams, summary=L('Weniger (- 100)'), tagline=tag)
 
@@ -500,7 +528,6 @@ def MyAlbums(title, user_id, pagenr):
 	
 	for rec in records:
 		title 		= stringextract('<title>', '</title>', rec)
-		title		= title.decode(encoding="utf-8")
 		photoset_id	= stringextract('id="', '"', rec)
 		description = stringextract('description="', '"', rec)
 		count_photos = stringextract('photos="', '"', rec)
@@ -519,8 +546,8 @@ def MyAlbums(title, user_id, pagenr):
 		img_src = R(ICON_FLICKR)
 		
 		PLog(title);PLog(photoset_id);PLog(thumb_src);
-		title=UtfToStr(title); 
-		fparams="&fparams={'title': '%s', 'photoset_id': '%s', 'user_id': '%s'}" % (urllib2.quote(title), photoset_id, user_id)
+		title=py2_encode(title); 
+		fparams="&fparams={'title': '%s', 'photoset_id': '%s', 'user_id': '%s'}" % (quote(title), photoset_id, user_id)
 		addDir(li=li, label=title, action="dirList", dirID="MyAlbumsSingle", fanart=thumb_src, thumb=thumb_src, 
 			fparams=fparams, summary=summ)
 				
@@ -528,29 +555,30 @@ def MyAlbums(title, user_id, pagenr):
 	PLog(pagenr); PLog(pages);
 	page_next = int(pagenr) + 1
 	tag = 'total: %s %s' % (alben_max, L('Alben'))
+	title_org=py2_encode(title_org); 
 	if (int(pagenr)+1) <= int(pages):
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (urllib2.quote(title_org), user_id, int(pagenr))
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_MEHR_1), thumb=R(ICON_MEHR_1), 
 			fparams=fparams, summary=L('Mehr (+ 1)'), tagline=tag)
 	if (int(pagenr)+10) < int(pages):
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (urllib2.quote(title_org), user_id, int(pagenr))
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_MEHR_10), thumb=R(ICON_MEHR_10), 
 			fparams=fparams, summary=L('Mehr (+ 10)'), tagline=tag)
 	if (int(pagenr)+100) < int(pages):
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (urllib2.quote(title_org), user_id, int(pagenr))
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_MEHR_100), thumb=R(ICON_MEHR_100), 
 			fparams=fparams, summary=L('Mehr (+ 100)'), tagline=tag)
 	# weniger
 	if  int(pagenr) > 1:
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (urllib2.quote(title_org), user_id, int(pagenr))
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_WENIGER_1), thumb=R(ICON_WENIGER_1), 
 			fparams=fparams, summary=L('Weniger (- 1)'), tagline=tag)
 	if int(pagenr) > 10:
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (urllib2.quote(title_org), user_id, int(pagenr))
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_WENIGER_10), thumb=R(ICON_WENIGER_10), 
 			fparams=fparams, summary=L('Weniger (- 10)'), tagline=tag)
 	if int(pagenr) > 100:
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (urllib2.quote(title_org), user_id, int(pagenr))
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_WENIGER_100), thumb=R(ICON_WENIGER_100), 
 			fparams=fparams, summary=L('Weniger (- 100)'), tagline=tag)
 							
@@ -636,10 +664,10 @@ def FlickrPeople(pagenr=1):
 		if '@N' not in nsid:
 				continue			
 		username =  stringextract('username":"', '"', rec) 
-		username=unescape(username);  username=urllib2.unquote(username)
+		username=unescape(username);  username=unquote(username)
 		realname =  stringextract('realname":"', '"', rec) 
 		alias =  stringextract('pathAlias":"', '"', rec) 		# kann fehlen
-		alias = unescape(alias);  alias = urllib2.unquote(alias)
+		alias = unescape(alias);  alias = unquote(alias)
 		
 		if alias == '':
 			alias = username
@@ -654,21 +682,20 @@ def FlickrPeople(pagenr=1):
 		iconserver =  stringextract('iconserver":"', '"', rec) 
 		title = "%s | %s" % (username, realname)
 		PLog(title)
-		title=unescape(title); title=urllib2.unquote(title)
+		title=unescape(title); title=unquote(title)
 		summ = "%s: %s" % (L('Fotos'), photosCount)
 		summ = summ + " | %s: %s | Alias: %s" % (L('Followers'), followersCount, alias)
 		
 		PLog('Satz')
 		PLog("username: %s, nsid: %s"	% (username, nsid)); PLog(title)
-		username=UtfToStr(username); 
 		if realname:
 			label=realname
 		else:
 			label=username
-		label=unescape(label); label=urllib2.unquote(label)
+		label=unescape(label); label=unquote(label)
 		
-		
-		fparams="&fparams={'username': '%s', 'user_id': '%s'}" % (urllib2.quote(username), nsid)
+		username=py2_encode(username);
+		fparams="&fparams={'username': '%s', 'user_id': '%s'}" % (quote(username), nsid)
 		addDir(li=li, label=label, action="dirList", dirID="MyMenu", fanart=thumb, thumb=thumb, 
 		fparams=fparams, summary=summ)
 		i = i + 1
@@ -755,7 +782,10 @@ def WebGalleries(pagenr):
 		gallery_id = href_id
 
 		title = stringextract('gallery-title">', '</h4>', rec)  # in href
-		title=cleanhtml(title); title=mystrip(title);  title=unescape(title); title=repl_json_chars(title)
+		title=py2_encode(title); 
+		title=cleanhtml(title); title=mystrip(title);  
+		title=unescape(title); title=repl_json_chars(title)
+		
 		nr_shown = stringextract('stat item-count">', '</span>', rec)		# Anzahl, Bsp.: 15 photos
 		nr_shown = mystrip(nr_shown) 
 		views 	= stringextract('stat view-count">', '</span>', rec)		# Views,  Bsp.: 3.3K views
@@ -766,10 +796,9 @@ def WebGalleries(pagenr):
 		summ = "%s | %s | %s" % (nr_shown, views, comments )
 			
 		PLog('Satz:')	
-		title=UtfToStr(title); 
 		PLog(href);PLog(img_src);PLog(title);PLog(summ);PLog(gallery_id);
-		
-		fparams="&fparams={'title': '%s', 'gallery_id': '%s', 'user_id': '%s'}" % (urllib2.quote(title), gallery_id, '')
+		title=py2_encode(title);
+		fparams="&fparams={'title': '%s', 'gallery_id': '%s', 'user_id': '%s'}" % (quote(title), gallery_id, '')
 		addDir(li=li, label=title, action="dirList", dirID="Gallery_single", fanart=img_src, thumb=img_src, 
 			fparams=fparams, summary=summ)
 				
@@ -805,10 +834,10 @@ def img_via_id(href_id, page):
 	records = blockextract('"compoundId":', '', page)
 	for rec in records:
 		if href_id in rec:
-			 img_src = stringextract('"displayUrl":"', '"', rec)
-			 img_src = img_src.replace('\\', '')
-			 img_src = img_src.replace('_s', '')	# ..475efd8f73_s.jpg
-			 if img_src.startswith('https') == False:
+			img_src = stringextract('"displayUrl":"', '"', rec)
+			img_src = img_src.replace('\\', '')
+			img_src = img_src.replace('_s', '')	# ..475efd8f73_s.jpg
+			if img_src.startswith('https') == False:
 				img_src = 'https:' + img_src
 	if len(img_src) > 10:
 		return 	img_src
@@ -840,7 +869,7 @@ def Gallery_single(title, gallery_id, user_id):
 # Verwendet wird die freie Textsuche (s. API): Treffer möglich in Titel, Beschreibung + Tags
 # Mehrere Suchbegriffe, getrennt durch Blanks, bewirken UND-Verknüpfung.
 #
-def Search(query='', user_id='', pagenr=1):
+def Search(query='', user_id='', pagenr=1, title=''):
 	PLog('Search: ' + query); 
 	# wir springen direkt - Ablauf:
 	#	Search -> Search_Work -> BuildPages (-> SeparateVideos -> ShowPhotoObject, ShowVideos)
@@ -850,7 +879,7 @@ def Search(query='', user_id='', pagenr=1):
 		return ""	
 	query = query.strip()
 	
-	Search_Work(query=query, user_id=user_id)	 
+	Search_Work(query=py2_encode(query), user_id=user_id)	 
 	return
 	
 # --------------------------	
@@ -953,7 +982,6 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		searchname =  L('Seite')
 	
 	name = '%s %s/%s' % (searchname, pagenr, pagemax)	
-	name = name.decode(encoding="utf-8", errors="ignore")
 
 	
 	pagemax = int(pagemax)
@@ -979,9 +1007,11 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		PLog("i %d, pagenr %d" % (i, pagenr))
 		PLog(path);  # PLog(path1); PLog(path2);
 		# SeparateVideos -> ShowPhotoObject, ShowVideos:
-							
-		fparams="&fparams={'title': '%s', 'path': '%s', 'title_org': '%s'}" % (urllib2.quote(title), 
-			urllib2.quote(path), urllib2.quote(title_org))
+		
+		title=py2_encode(title); path=py2_encode(path);
+		title_org=py2_encode(title_org); 		
+		fparams="&fparams={'title': '%s', 'path': '%s', 'title_org': '%s'}" % (quote(title), 
+			quote(path), quote(title_org))
 		addDir(li=li, label=title, action="dirList", dirID="SeparateVideos", fanart=R('icon-next.png'), 
 			thumb=R('icon-next.png'), fparams=fparams)
 			
@@ -996,32 +1026,33 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 	PLog('Mehr:')
 	PLog(pagenr); PLog(pagemax); PLog(maxPageContent);
 	tag = 'total: %s ' % pagemax + L('Seiten')
+	title_org=py2_encode(title_org); searchname=py2_encode(searchname); SEARCHPATH=py2_encode(SEARCHPATH)		
 	if pagenr  <= pagemax:
 		pagenr_next = pagenr
 		title = L('Mehr (+ 1)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_MEHR_1), thumb=R(ICON_MEHR_1), 
 			fparams=fparams)
 	if pagenr + (9 * maxPageContent) <= pagemax:
 		pagenr_next = pagenr + (10 * maxPageContent)
 		title = L('Mehr (+ 10)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_MEHR_10), thumb=R(ICON_MEHR_10), 
 			fparams=fparams)
 	if pagenr + (99 * maxPageContent) <= pagemax:
 		pagenr_next = pagenr + (100 * maxPageContent)
 		title = L('Mehr (+ 100)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_MEHR_100), thumb=R(ICON_MEHR_100), 
 			fparams=fparams)
 	if pagenr + (499 * maxPageContent) <= pagemax:
 		pagenr_next = pagenr + (500 * maxPageContent)
 		title = L('Mehr (+ 500)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_MEHR_500), thumb=R(ICON_MEHR_500), 
 			fparams=fparams)
 	# weniger
@@ -1029,28 +1060,28 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		pagenr_next = pagenr - ( 2* maxPageContent)
 		title = L('Weniger (- 1)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_WENIGER_1), thumb=R(ICON_WENIGER_1), 
 			fparams=fparams)
 	if  pagenr-1 > (10 * maxPageContent):
 		pagenr_next = pagenr - (10 * maxPageContent)
 		title = L('Weniger (- 10)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_WENIGER_10), thumb=R(ICON_WENIGER_10), 
 			fparams=fparams)
 	if  pagenr-1 > 100:
 		pagenr_next =  pagenr - (100 * maxPageContent)
 		title = L('Weniger (- 100)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_WENIGER_100), thumb=R(ICON_WENIGER_100), 
 			fparams=fparams)
 	if  pagenr-1 > 500:
 		pagenr_next =  pagenr - (500 * maxPageContent)
 		title = L('Weniger (- 500)')
 		fparams="&fparams={'title': '%s', 'searchname': '%s', 'SEARCHPATH': '%s', 'pagemax': '%s', 'pagenr': '%s'}" %\
-			(urllib2.quote(title_org), urllib2.quote(searchname), urllib2.quote(SEARCHPATH), pagemax, pagenr_next)
+			(quote(title_org), quote(searchname), quote(SEARCHPATH), pagemax, pagenr_next)
 		addDir(li=li, label=title_org, action="dirList", dirID="BuildPages", fanart=R(ICON_WENIGER_500), thumb=R(ICON_WENIGER_500), 
 			fparams=fparams)
 				
@@ -1063,7 +1094,7 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 #		(Seite wird aus dem Cache erneut geladen)
 #	- user_id,username,realname werden hier ermittelt + übergeben
 def SeparateVideos(title, path, title_org):
-	PLog('SeparateVideos:')
+	PLog('SeparateVideos: ' + path)
 
 	li = xbmcgui.ListItem()
 	page, msg = RequestUrl(CallerName='SeparateVideos', url=path)
@@ -1092,18 +1123,20 @@ def SeparateVideos(title, path, title_org):
 	if SETTINGS.getSetting('showVideos') == 'false':						#	keine Videos zeigen
 		ShowPhotoObject(title,path,user_id,username,realname,title_org)	#	direkt
 		return 
-		
 
- 	if 'media="video"' in page and 'media="photo"' in page:	# Auswahlbuttons für Fotos + Videos zeigen
+
+	if 'media="video"' in page and 'media="photo"' in page:	# Auswahlbuttons für Fotos + Videos zeigen
 		# title von BuildPages
+		title=py2_encode(title); path=py2_encode(path); username=py2_encode(username); 
+		realname=py2_encode(realname); title_org=py2_encode(title_org); 
 		fparams="&fparams={'title': '%s', 'path': '%s', 'user_id': '%s', 'username': '%s', 'realname': '%s', 'title_org': '%s'}" %\
-			(urllib2.quote(title), urllib2.quote(path), user_id, urllib2.quote(username), urllib2.quote(realname), urllib2.quote(title_org))
+			(quote(title), quote(path), user_id, quote(username), quote(realname), quote(title_org))
 		addDir(li=li, label=title, action="dirList", dirID="ShowPhotoObject", fanart=R('icon-photo.png'), 
 			thumb=R('icon-photo.png'), fparams=fparams)
 			
 		title = L("zeige Videos")
 		fparams="&fparams={'title': '%s', 'path': '%s', 'user_id': '%s', 'username': '%s', 'realname': '%s'}" %\
-			(urllib2.quote(title), urllib2.quote(path), user_id, urllib2.quote(username), urllib2.quote(realname))
+			(quote(title), quote(path), user_id, quote(username), quote(realname))
 		addDir(li=li, label=title, action="dirList", dirID="ShowVideos", fanart=R('icon-video.png'), 
 			thumb=R('icon-video.png'), fparams=fparams)
 	else:
@@ -1134,7 +1167,6 @@ def SeparateVideos(title, path, title_org):
 #
 def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	PLog('ShowPhotoObject:')
-	title = UtfToStr(title); 
 	PLog(title); PLog(title_org)
 		
 	page, msg = RequestUrl(CallerName='ShowPhotoObject', url=path)
@@ -1159,7 +1191,8 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	CheckStorage(SLIDESTORE, SETTINGS.getSetting('max_slide_store'))	# Limit checken
 		
 	title = path2dirname(title, path, title_org)	# Verz.-Namen erzeugen
-	fname = make_filenames(title)					# os-konforme Behandl. 
+	fname = make_filenames(title)			# os-konforme Behandl. 
+	PLog(fname);
 	fpath = '%s/%s' % (SLIDESTORE, fname)
 	PLog(fpath)
 	if os.path.isdir(fpath) == False:
@@ -1224,7 +1257,6 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 			PLog("local_path: " + local_path)
 			title = "Bild %03d | %s" % (image+1, descr)
 			PLog("Bildtitel: " + title)
-			title = UtfToStr(title)
 			
 			thumb = img_src									# Default: Bild = Url 
 			local_path = os.path.abspath(local_path)
@@ -1241,8 +1273,6 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 				thumb = local_path							# lokal vorhanden - load
 				thumb_src = thumb							# Verzicht auf thumbnail von Farm			
 			
-			local_path=UtfToStr(local_path); summ=UtfToStr(summ); fpath=UtfToStr(fpath);
-			title_org=UtfToStr(title_org);	
 			tagline = unescape(title_org); tagline = cleanhtml(tagline)
 			summ = unescape(summ)
 			PLog('neu:');PLog(title);PLog(thumb);PLog(thumb_src);PLog(summ); PLog(local_path);
@@ -1269,8 +1299,9 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 				)
 			
 	# Button SlideShow - auch via Kontextmenü am Bild	
-	if image > 0:	
-		fparams="&fparams={'path': '%s'}" % urllib2.quote(fpath) 	# fpath: SLIDESTORE/fname
+	if image > 0:
+		fpath=py2_encode(fpath);
+		fparams="&fparams={'path': '%s'}" % quote(fpath) 	# fpath: SLIDESTORE/fname
 		addDir(li=li, label="SlideShow", action="dirList", dirID="SlideShow", 
 			fanart=R('icon-stream.png'), thumb=R('icon-stream.png'), fparams=fparams)
 
@@ -1282,7 +1313,7 @@ def thread_getpic(img_src, local_path):
 	PLog(img_src); PLog(local_path);
 
 	try:
-		urllib.urlretrieve(img_src, local_path)
+		urlretrieve(img_src, local_path)
 	except Exception as exception:
 		PLog("thread_getpic:" + str(exception))
 
@@ -1376,18 +1407,17 @@ def ShowVideos(title,path,user_id,username,realname):
 		img_src 	=  	stringextract('url_z="', '"', s)	
 		
 		title = unescape(title)					# Web Client hat Probleme mit ausländ. Zeichen
-		title = title.decode(encoding="utf-8")
-		summ  = owner.decode(encoding="utf-8")
 		if title == '':
 			title = "Video %s" % str(i)
 		else:
 			"Video %s| %s" % (str(i), title)
+		summ  = owner
 			
 		PLog('Satz:')
-		title=UtfToStr(title); title=repl_json_chars(title)
-		PLog(title); PLog(pid); PLog(img_src); PLog(url);	
+		PLog(title); PLog(pid); PLog(img_src); PLog(url);
+		url=py2_encode(url); title=py2_encode(title); img_src=py2_encode(img_src); summ=py2_encode(summ); 	
 		fparams="&fparams={'url': '%s', 'title': '%s', 'thumb': '%s', 'Plot': '%s', 'sub_path': '', 'Merk': ''}" %\
-			(urllib.quote(url), urllib.quote(title), urllib.quote(img_src), urllib.quote_plus(summ))
+			(quote(url), quote(title), quote(img_src), quote_plus(summ))
 		addDir(li=li, label=title, action="dirList", dirID="PlayVideo", fanart=img_src, thumb=img_src, fparams=fparams, 
 			summary=summ) 		
 
@@ -1399,7 +1429,7 @@ def ShowVideos(title,path,user_id,username,realname):
 def BuildPath(method, query_flickr, user_id, pagenr):
 	PLog('BuildPath: %s' % method)
 	
-	API_KEY = GetKey()	
+	API_KEY = GetKey()							# flickr_keys.txt
 	PATH = "https://api.flickr.com/services/rest/?method=%s&api_key=%s"  % (method, API_KEY)	
 
 	if user_id:									# None bei allg. Suche
@@ -1422,14 +1452,16 @@ def BuildPath(method, query_flickr, user_id, pagenr):
 		val = SETTINGS.getSetting('sort_order')
 		nr = val.split('/')[0].strip	
 		sortorder = val.split('/')[1].strip()
-		PATH = '%s&sort=%s' % (PATH, sortorder)	
+		PLog(type(PATH));PLog(type(sortorder));
+		PATH = '%s&sort=%s' % (PATH, py2_encode(sortorder))	
 				
 	if pagenr:
 		PATH =  PATH + "&page=%s" % pagenr
 	
 	# per_page muss an letzter Stelle stehen (Änderung in BuildPages möglich)
 	if SETTINGS.getSetting('maxPageContent'):					# Objekte pro Seite
-		PATH =  PATH + "&per_page=%s" % SETTINGS.getSetting('maxPageContent')
+		mPC = py2_encode(SETTINGS.getSetting('maxPageContent'))
+		PATH =  PATH + "&per_page=%s" % mPC
 	else:
 		PATH =  PATH + "&per_page=%s" % 500		# API: Maximum
 	PLog(PATH) 
@@ -1532,7 +1564,8 @@ def SearchUpdate(title):
 		summary = 'Addon aktuell: ' + VERSION + ', neu auf Github: ' + latest_version
 		tagline = cleanhtml(summ)
 		thumb = R(ICON_UPDATER_NEW)
-		fparams="&fparams={'url': '%s', 'ver': '%s'}" % (urllib.quote_plus(url), latest_version) 
+		url=py2_encode(url); 
+		fparams="&fparams={'url': '%s', 'ver': '%s'}" % (quote_plus(url), latest_version) 
 		addDir(li=li, label=title, action="dirList", dirID="resources.lib.updater.update", 
 			fanart=R(ICON_UPDATER_NEW), thumb=R(ICON_UPDATER_NEW), fparams=fparams, summary=summary, 
 			tagline=cleanhtml(summ))
@@ -1562,24 +1595,26 @@ def SearchUpdate(title):
 def router(paramstring):
 	# paramstring: Dictionary mit
 	# {<parameter>: <value>} Elementen
-	paramstring = urllib.unquote_plus(paramstring)
+	paramstring = unquote_plus(paramstring)
 	PLog(' router_params1: ' + paramstring)
+	PLog(type(paramstring));
 		
 	if paramstring:	
-		params = dict(parse_qsl(paramstring[1:]))
+		params = dict(parse_qs(paramstring[1:]))
 		PLog(' router_params_dict: ' + str(params))
 		try:
-			if params['content_type'] == 'video':		# Auswahl im Addon-Menü
-				Main()
-			PLog(' router action: ' + params['action']) # hier immer action="dirList"
-			PLog(' router dirID: ' + params['dirID'])
-			PLog(' router fparams: ' + params['fparams'])
+			if 'content_type' in params:
+				if params['content_type'] == 'video':	# Auswahl im Addon-Menü
+					Main()
+			PLog('router action: ' + params['action'][0]) # hier immer action="dirList"
+			PLog('router dirID: ' + params['dirID'][0])
+			PLog('router fparams: ' + params['fparams'][0])
 		except Exception as exception:
 			PLog(str(exception))
 
-		if params['action'] == 'dirList':			# Aufruf Directory-Listing
-			newfunc = params['dirID']
-			func_pars = params['fparams']
+		if params['action'][0] == 'dirList':			# Aufruf Directory-Listing
+			newfunc = params['dirID'][0]
+			func_pars = params['fparams'][0]
 
 			# Funktionsaufrufe + Parameterübergabe via Var's 
 			#	s. 00_Migration_PLEXtoKodi.txt
@@ -1609,6 +1644,8 @@ def router(paramstring):
 			
 			PLog(' router func_getattr: ' + str(func))		
 			if func_pars != '""':		# leer, ohne Parameter?	
+				# PLog(' router func_pars: Ruf mit func_pars')
+				# func_pars = unquote_plus(func_pars)		# quotierte url auspacken - entf.
 				PLog(' router func_pars unquote_plus: ' + str(func_pars))
 				try:
 					# Problem (spez. Windows): Parameter mit Escapezeichen (Windows-Pfade) müssen mit \\
@@ -1617,14 +1654,13 @@ def router(paramstring):
 					# Keine /n verwenden (json.loads: need more than 1 value to unpack)
 					func_pars = func_pars.replace("'", "\"")		# json.loads-kompatible string-Rahmen
 					func_pars = func_pars.replace('\\', '\\\\')		# json.loads-kompatible Windows-Pfade
-					func_pars = func_pars.decode(encoding="utf-8")  
 					
 					PLog("json.loads func_pars: " + func_pars)
 					PLog('json.loads func_pars type: ' + str(type(func_pars)))
-					func_pars = func_pars.encode("utf-8")			# entf.
 					mydict = json.loads(func_pars)
 					PLog("mydict: " + str(mydict)); PLog(type(mydict))
-				except:
+				except Exception as exception:
+					PLog('router_exception: {0}'.format(str(exception)))
 					mydict = ''
 				
 				# PLog(' router func_pars: ' + str(type(mydict)))

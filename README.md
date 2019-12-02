@@ -5,7 +5,7 @@ ported from FlickrExplorer (https://github.com/rols1/FlickrExplorer)
 Download aktuelle Version: https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 
 #### Rückmeldungen im Forum willkommen / Feedeback welcome:
-Support-Thread: https://forum.kodi.tv/showthread.php?tid=347210 <br>
+Support-Thread: will be added <br>
 EMail: rols1@gmx.de 
   
 #### Functions tested Linux/Kodi 18.3, Win7/Kodi 18.1, Android 7.0/Kodi 18.3, Raspi 3b+/LibreELEC 9.0.1 

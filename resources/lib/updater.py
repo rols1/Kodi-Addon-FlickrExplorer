@@ -4,11 +4,33 @@
 #
 #
 ################################################################################
-import re, os, sys
-import shutil						# Dir's löschen
-import urllib2, zipfile, StringIO
+#	01.12.2019 Migration Python3 Modul kodi_six + manuelle Anpassungen
+################################################################################
 
-import xbmc, xbmcgui, xbmcaddon
+# Python3-Kompatibilität:
+from __future__ import absolute_import		# sucht erst top-level statt im akt. Verz. 
+from __future__ import division				# // -> int, / -> float
+from __future__ import print_function		# PYTHON2-Statement -> Funktion
+from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+# o. Auswirkung auf die unicode-Strings in PYTHON3:
+from kodi_six.utils import py2_encode, py2_decode
+
+import os, sys
+PYTHON2 = sys.version_info.major == 2
+PYTHON3 = sys.version_info.major == 3
+if PYTHON2:					
+	from urllib import quote, unquote, quote_plus, unquote_plus, urlencode, urlretrieve 
+	from urllib2 import Request, urlopen, URLError 
+	from urlparse import urljoin, urlparse, urlunparse , urlsplit, parse_qs 
+elif PYTHON3:				
+	from urllib.parse import quote, unquote, quote_plus, unquote_plus, urlencode, urljoin, urlparse, urlunparse, urlsplit, parse_qs  
+	from urllib.request import Request, urlopen, urlretrieve
+	from urllib.error import URLError
+
+# Standard:
+import shutil						# Dir's löschen
+import zipfile, re
+import io 							# Python2+3 -> update() io.BytesIO für Zipfile
 
 import resources.lib.util_flickr as util
 PLog=util.PLog; stringextract=util.stringextract;
@@ -17,7 +39,7 @@ cleanhtml=util.cleanhtml;
 ADDON_ID      	= 'plugin.image.flickrexplorer'
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
-ADDON_PATH    	= SETTINGS.getAddonInfo('path').decode('utf-8')
+ADDON_PATH    	= SETTINGS.getAddonInfo('path')
 
 FEED_URL = 'https://github.com/{0}/releases.atom'
 
@@ -37,8 +59,9 @@ def get_latest_version():
 		release_feed_url = ('https://github.com/{0}/releases.atom'.format(GITHUB_REPOSITORY))
 		PLog(release_feed_url)
 			
-		r = urllib2.urlopen(release_feed_url)
+		r = urlopen(release_feed_url)
 		page = r.read()					
+		page=page.decode('utf-8')				
 		PLog(len(page))
 		# PLog(page[:800])
 
@@ -52,10 +75,11 @@ def get_latest_version():
 		# PLog(link); PLog(title); PLog(summary); PLog(tag);  
 		return (title, summary, tag)
 	except Exception as exception:
-		Log.Error('Suche nach neuen Versionen fehlgeschlagen: {0}'.format(repr(exception)))
+		PLog(str(exception))
 		return ('', '', '')
 
 ################################################################################
+# decode latest_version (hier bytestring) erforderlich für Pfad-Bau in 
 def update_available(VERSION):
 	PLog('update_available:')
 
@@ -71,16 +95,17 @@ def update_available(VERSION):
 			# wir verwenden auf Github die Versionierung nicht im Plugin-Namen
 			# latest_version  = title 
 			latest_version  = tag		# Format hier: '1.4.1'
+
 			current_version = VERSION
 			int_lv = tag.replace('.','')
 			int_cv = current_version.replace('.','')
 			PLog('Github: ' + latest_version); PLog('lokal: ' + current_version); 
 			# PLog(int_lv); PLog(int_cv)
 			return (int_lv, int_cv, latest_version, summ, tag)
-	except:
-		pass
-	return (False, '', '', '', '', '')
-           
+	except Exception as exception:	
+		PLog(str(exception))
+	return (False, '', '', '', '', '')		# int_lv hier bool statt string
+            
 ################################################################################
 def update(url, ver):
 	PLog('update:')	
@@ -91,9 +116,9 @@ def update(url, ver):
 		try:
 			dest_path 	= xbmc.translatePath("special://home/addons/")
 			PLog('Mark1')
-			r 			= urllib2.urlopen(url)
+			r 			= urlopen(url)
 			PLog('Mark2')
-			zip_data	= zipfile.ZipFile(StringIO.StringIO(r.read()))
+			zip_data	= zipfile.ZipFile(io.BytesIO(r.read()))
 			PLog('Mark3')
 			
 			# save_restore('save')									# Cache sichern - entfällt, s.o.
@@ -114,7 +139,6 @@ def update(url, ver):
 		msg1 = 'Update fehlgeschlagen'
 		msg2 =  'Version ' + ver + 'nicht gefunden!'
 		xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
-	return
 
 ################################################################################
 # save_restore:  Cache sichern / wieder herstellen
@@ -124,7 +148,8 @@ def update(url, ver):
 # 03.05.2019 Funktion wieder entfernt - s.o.
 
 	
-################################################################################# clean tag names based on your release naming convention
+################################################################################# 
+# clean tag names based on your release naming convention
 def cleanSummary(summary):
 	
 	summary = (summary.replace('&lt;','').replace('&gt;','').replace('/ul','')
