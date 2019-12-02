@@ -312,7 +312,7 @@ def home(li,user_id,username='', returnto=''):
 	li = xbmcgui.ListItem()
 	
 	if returnto == 'FlickrPeople':				# MyMenu -> FlickrPeople 
-		title = L('Zurueck zu') + ' ' + L('Flickr Nutzer')
+		title = py2_decode(L('Zurueck zu')) + ' ' + py2_decode(L('Flickr Nutzer'))
 		fparams="&fparams={}"
 		addDir(li=li, label=title, action="dirList", dirID="FlickrPeople", fanart=R('homePeople.png'), 
 			thumb=R('homePeople.png'), fparams=fparams)
@@ -328,7 +328,7 @@ def home(li,user_id,username='', returnto=''):
 	if user_id:									# Untermenüs: User (SETTINGS.getSetting('username') oder Flickr People)
 		if username == '':
 			user_id,nsid,username,realname = GetUserID(user_id) 					
-		title = L('Zurueck zu') + ' ' + username
+		title = py2_decode(L('Zurueck zu')) + ' ' + username
 		username=py2_encode(username); user_id=py2_encode(user_id); 
 		fparams="&fparams={'username': '%s', 'user_id': '%s'}"  % (quote(username), quote(user_id))
 		addDir(li=li, label=title, action="dirList", dirID="MyMenu", fanart=R('homePeople.png'), 
@@ -1227,6 +1227,7 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 		thumb_src = 'https://farm%s.staticflickr.com/%s/%s_%s_m.jpg' % (farmid, serverid, pid, secret)  # m=small (240)
 		# Foto-Auswahl - jeweils das größte, je nach Voreinstellung (falls verfügbar):
 		Imagesize = L('Bildgroesse') 
+		Imagesize = py2_decode(Imagesize)
 		if 'url_' in s:							# Favs ohne Url
 			for i in range (len(extras_list)):			
 				url_extra = extras_list[i]
@@ -1428,6 +1429,8 @@ def ShowVideos(title,path,user_id,username,realname):
 #  pagenr muss Aufrufer beisteuern
 def BuildPath(method, query_flickr, user_id, pagenr):
 	PLog('BuildPath: %s' % method)
+	PLog(user_id)
+	query_flickr = py2_decode(query_flickr)
 	
 	API_KEY = GetKey()							# flickr_keys.txt
 	PATH = "https://api.flickr.com/services/rest/?method=%s&api_key=%s"  % (method, API_KEY)	
