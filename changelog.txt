@@ -1,13 +1,13 @@
 CHANGE HISTORY 	Kodi-Addon-FlickrExplorer  
 		ported from Plex version FlickrExplorer (https://github.com/rols1/FlickrExplorer)
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
-		Forum:		https://forum.kodi.tv/showthread.php?tid=347210
 --------------
 
 02.12.2019	0.6.6	Adaptation Kodi Matrix (compatibility Python2/Python3:
 			Modul updater: replaced with update-Modul from TuneIn2017.
 			addon.xml: dependency for script.module.kodi-six added.
 			Tests with Windows10 + Kodi Matrix (Git:20191128-19f60fecab) OK. 
+			Search_Work: quote query_flickr.
 
 not on github	0.6.5	Adaptation Kodi Matrix (compatibility Python2/Python3:
 			Main / SearchUpdate: Fix reaction on Github-problem (interpretation of 

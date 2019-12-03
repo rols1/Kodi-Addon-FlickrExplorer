@@ -899,6 +899,7 @@ def Search_Work(query, user_id, SEARCHPATH=''):
 	PLog('Search_Work: ' + query); 		
 	
 	query_flickr = query.replace(' ', '%20')		# Leerz. -> url-konform
+	query_flickr = quote(query_flickr)
 	if query == '#Faves#':							# MyFaves
 		SEARCHPATH = BuildPath(method='flickr.favorites.getList', query_flickr=query_flickr, user_id=user_id, pagenr='')
 	else:
@@ -1191,7 +1192,7 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	CheckStorage(SLIDESTORE, SETTINGS.getSetting('max_slide_store'))	# Limit checken
 		
 	title = path2dirname(title, path, title_org)	# Verz.-Namen erzeugen
-	fname = make_filenames(title)			# os-konforme Behandl. 
+	fname = make_filenames(py2_decode(title))		# os-konforme Behandl. 
 	PLog(fname);
 	fpath = '%s/%s' % (SLIDESTORE, fname)
 	PLog(fpath)

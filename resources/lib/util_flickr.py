@@ -569,8 +569,8 @@ def make_filenames(title):
 #----------------------------------------------------------------  
 def transl_umlaute(line):	# Umlaute übersetzen, wenn decode nicht funktioniert
 	PLog('transl_umlaute:')
-#	line= py2_decode(line)	
-	line= str(line)	
+	# line= py2_decode(line)	
+	# line= str(line)	
 	line_ret = line
 	line_ret = line_ret.replace(u"Ä", u"Ae", len(line_ret))
 	line_ret = line_ret.replace(u"ä", u"ae", len(line_ret))
