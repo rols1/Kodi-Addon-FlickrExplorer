@@ -80,7 +80,7 @@ via Addon-Update-Modul
 
 Credits:
 =================== 
-[romanv](https://github.com/romanvm) fpr his script.module.kodi-six
+[romanv](https://github.com/romanvm) for his script.module.kodi-six
 
 
 
