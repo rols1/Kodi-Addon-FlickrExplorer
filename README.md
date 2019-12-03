@@ -32,14 +32,15 @@ INSTALLATION
 ===================
 ## english:
 - Download zip-file from https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
-- choose downloaded zip-file with your Kodi-Browser
+- Download script.module.kodi-six.zip from https://github.com/romanvm/kodi.six/releases
+- choose downloaded zip-files with your Kodi-Browser
 - start addon and make the appropriate settings
 - [further instructions with pictures](https://kodi.wiki/view/HOW-TO:Install_add-ons_from_zip_files) 
 
 ## deutsch:
 - Download der zip-Datei hier: https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
-- Im Kodi-Menü Addons/Addon-Browser anklicken: aus ZIP-Datei installieren
-- Heruntergeladene zip-Datei im Kodi-Browser auswählen.
+- Download script.module.kodi-six.zip hier https://github.com/romanvm/kodi.six/releases
+- Beide zip-Dateien mittels Kodi-Menü Addons/Addon-Browser installieren
 - Addon öffen und Addon-Einstellungen anpassen.
 - [bebilderte Anleitung](https://www.kodinerds.net/index.php/Thread/14234-Wie-installiert-man-Addons-die-nicht-über-den-Addon-Browser-verfügbar-sind/?page=Thread&threadID=14234)
 
@@ -77,8 +78,9 @@ via Addon-Update-Modul
 ![img](https://github.com/rols1/PluginPictures/blob/master/Kodi/FlickrExplorer/Settings_Cache.png)
 
 
-
-
+Credits:
+=================== 
+[romanv](https://github.com/romanvm) fpr his script.module.kodi-six
 
 
 
