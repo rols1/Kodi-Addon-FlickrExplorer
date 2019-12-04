@@ -898,8 +898,7 @@ def Search(query='', user_id='', pagenr=1, title=''):
 def Search_Work(query, user_id, SEARCHPATH=''):		
 	PLog('Search_Work: ' + query); 		
 	
-	query_flickr = query.replace(' ', '%20')		# Leerz. -> url-konform
-	query_flickr = quote(query_flickr)
+	query_flickr = quote(query)
 	if query == '#Faves#':							# MyFaves
 		SEARCHPATH = BuildPath(method='flickr.favorites.getList', query_flickr=query_flickr, user_id=user_id, pagenr='')
 	else:
