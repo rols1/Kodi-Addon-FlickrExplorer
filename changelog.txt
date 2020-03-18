@@ -3,6 +3,9 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+18.03.2020	0.6.7	update (Modul Updater): new function adjust_AddonXml - adjust python-version in
+			fresh installed addon.xml (e.g. "3.0.0" if Kodi 19 is running). 	
+
 02.12.2019	0.6.6	Adaptation Kodi Matrix (compatibility Python2/Python3:
 			Modul updater: replaced with update-Modul from TuneIn2017.
 			addon.xml: dependency for script.module.kodi-six added.

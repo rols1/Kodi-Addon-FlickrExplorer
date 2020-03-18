@@ -51,8 +51,8 @@ make_filenames=util.make_filenames; CheckStorage=util.CheckStorage
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.6.6'	
-VDATE = '02.12.2019'
+VERSION =  '0.6.7'	
+VDATE = '18.03.2020'
 
 # 
 #	
