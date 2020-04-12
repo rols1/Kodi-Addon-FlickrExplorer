@@ -47,12 +47,12 @@ stringextract=util.stringextract; blockextract=util.blockextract;
 cleanhtml=util.cleanhtml; decode_url=util.decode_url; unescape=util.unescape; 
 transl_json=util.transl_json; repl_json_chars=util.repl_json_chars; seconds_translate=util.seconds_translate; 
 get_keyboard_input=util.get_keyboard_input; L=util.L; RequestUrl=util.RequestUrl; PlayVideo=util.PlayVideo;
-make_filenames=util.make_filenames; CheckStorage=util.CheckStorage
+make_filenames=util.make_filenames; CheckStorage=util.CheckStorage; MyDialog=util.MyDialog;
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.6.7'	
-VDATE = '18.03.2020'
+VERSION =  '0.6.8'	
+VDATE = '10.04.2020'
 
 # 
 #	
@@ -248,7 +248,7 @@ def Main():
 			msg1 = L("Github ist nicht errreichbar")
 			msg2 = 'update_available: False'
 			PLog("%s | %s" % (msg1, msg2))
-			xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
+			MyDialog(msg1, msg2, '')
 		else:
 			int_lv = ret[0]			# Version Github
 			int_lc = ret[1]			# Version aktuell
@@ -362,7 +362,7 @@ def MyMenu(username='',user_id=''):
 			
 			if 'User not found'	in user_id:							# err code aus GetUserID
 				msg1 = L("User not found") + ': %s' % user	
-				xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+				MyDialog(msg1, '', '')
 				return 
 				
 	PLog(Dict('load','nsid'))
@@ -383,7 +383,7 @@ def MyMenu(username='',user_id=''):
 		fparams=fparams, summary=summ)
 	
 	title='%s: Photostream'	% username							
-	fparams="&fparams={'query': '#Photostream#', 'user_id': '%s'}" % (nsid)
+	fparams="&fparams={'query': '%s', 'user_id': '%s'}" % (quote('&Photostream&'), nsid)
 	addDir(li=li, label=title, action="dirList", dirID="Search_Work", fanart=R('icon-stream.png'), thumb=R('icon-stream.png'), 
 		fparams=fparams, summary=title)
 				
@@ -400,7 +400,7 @@ def MyMenu(username='',user_id=''):
 		thumb=R('icon-gallery.png'), fparams=fparams, summary=title)
 				
 	title='%s: Faves'	% username		
-	fparams="&fparams={'query': '%s', 'user_id': '%s'}" % ('#Faves#', nsid)
+	fparams="&fparams={'query': '%s', 'user_id': '%s'}" % (quote('&Faves&'), nsid)
 	addDir(li=li, label=title, action="dirList", dirID="Search_Work", fanart=R('icon-fav.png'), thumb=R('icon-fav.png'), 
 		fparams=fparams, summary=title)
 
@@ -423,7 +423,7 @@ def MyGalleries(title, user_id, offset=0):
 	page, msg = RequestUrl(CallerName='MyGalleries', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 
 	PLog(page[:100])
 		
@@ -432,7 +432,7 @@ def MyGalleries(title, user_id, offset=0):
 	PLog('Galleries: %s, Seiten: %s' % (cnt, pages))
 	if cnt == '0' or pages == '':
 		msg1 = L('Keine Gallerien gefunden')
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 
 		
 	li = xbmcgui.ListItem()
@@ -503,7 +503,7 @@ def MyAlbums(title, user_id, pagenr):
 	page, msg = RequestUrl(CallerName='MyAlbums', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 		
 	PLog(page[:100])
 		
@@ -520,7 +520,7 @@ def MyAlbums(title, user_id, pagenr):
 			
 	if alben_max == '0':			
 		msg1 = L('Keine Alben gefunden')
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 
 		
 	records = blockextract('<photoset id', '', page)
@@ -598,7 +598,7 @@ def MyAlbumsSingle(title, photoset_id, user_id, pagenr=1):
 	page, msg = RequestUrl(CallerName='MyAlbumsSingle', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return	
 	PLog(page[:100])
 	pagemax		= stringextract('pages="', '"', page)
@@ -627,7 +627,7 @@ def FlickrPeople(pagenr=1):
 		path = 'https://www.flickr.com/search/people/?username=%s&page=%s' % (username, pagenr)
 	else:
 		msg1 = L('Einstellungen: Suchbegriff für Flickr Nutzer fehlt')
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 			
 	
 	title2 = 'Flickr People ' + L('Seite') + ' ' +  str(pagenr)
@@ -637,7 +637,7 @@ def FlickrPeople(pagenr=1):
 	page, msg = RequestUrl(CallerName='FlickrPeople', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 			
 	PLog(page[:100])
 	page = page.replace('\\', '')					# Pfadbehandl. im json-Bereich
@@ -704,7 +704,7 @@ def FlickrPeople(pagenr=1):
 		msg = SETTINGS.getSetting('FlickrPeople') + ': ' + L('kein Treffer')
 		PLog(msg)
 		msg1=msg	
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=True)
 		
 	# plus/minus 1 Seite:
@@ -737,7 +737,7 @@ def WebGalleries(pagenr):
 	page, msg = RequestUrl(CallerName='WebGalleries: page %s' % pagenr, url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return			
 	PLog(page[:50])
 	
@@ -758,7 +758,7 @@ def WebGalleries(pagenr):
 		pagemax  = 1
 		msg1 = "WebGalleries: " + L('Ermittlung der Seitenzahl gescheitert')
 		msg2 = "Gezeigt wird nur die erste Seite"
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 	
 	PLog('pagemax: ' + str(pagemax)); 
 	name = L('Seite') + ' ' + pagenr + L('von') + ' ' + str(pagemax)	
@@ -768,7 +768,7 @@ def WebGalleries(pagenr):
 	records = blockextract('class="tile-container">', '', page)  # oder gallery-case gallery-case-user	
 	if len(records) == 0: 
 		msg1 = L("Keine Gallerien gefunden")
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return			
 	PLog(len(records))
 	for rec in records:					# Elemente pro Seite: 12
@@ -889,6 +889,7 @@ def Search(query='', user_id='', pagenr=1, title=''):
 #	Search_Work -> Seitensteuerung durch BuildPages (-> SeparateVideos -> ShowPhotoObject, ShowVideos)
 #
 # query='#Suchbegriff#' möglich (MyMenu: MyPhotostream, MyFaves) - Behandl. in BuildPath
+#	10.04.2020 wg. coding-Problemen geändert in '&Suchbegriff&'
 #  query='None' möglich (Photostream)
 #
 # URL's: viele Foto-Sets enthalten unterschiedliche Größen - erster Ansatz, Anforderung mit b=groß, 
@@ -899,7 +900,7 @@ def Search_Work(query, user_id, SEARCHPATH=''):
 	PLog('Search_Work: ' + query); 		
 	
 	query_flickr = quote(query)
-	if query == '#Faves#':							# MyFaves
+	if query == '&Faves&':							# MyFaves
 		SEARCHPATH = BuildPath(method='flickr.favorites.getList', query_flickr=query_flickr, user_id=user_id, pagenr='')
 	else:
 		# BuildPath liefert zusätzlich Dict['extras_list'] für Fotoauswahl (s.u.)
@@ -912,8 +913,8 @@ def Search_Work(query, user_id, SEARCHPATH=''):
 	else:
 		searchname = L('Suche') + ': ' + query + ' ' + L('Seite')
 		title=query
-	if query.startswith('#') and query.endswith('#'):# von MyPhotostream / MyFaves
-		title = query.replace('#', '')
+	if query.startswith('&') and query.endswith('&'):# von MyPhotostream / MyFaves
+		title = query.replace('&', '')
 		searchname =  L('Seite')					# Ergänzung in BuildPages
 	PLog(title)					
 	BuildPages(title=title, searchname=searchname, SEARCHPATH=SEARCHPATH, pagemax=1, perpage=1, pagenr='?')
@@ -943,12 +944,12 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		page, msg = RequestUrl(CallerName='BuildPages', url=SEARCHPATH)
 		if page == '': 
 			msg1=msg			
-			xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+			MyDialog(msg1, '', '')
 			return li
 		PLog(page[:100])
 		if  '<rsp stat="ok">' not in page or 'pages="0"' in page:			
 			msg1 = L('kein Treffer')
-			xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+			MyDialog(msg1, '', '')
 			return li
 
 		pagemax		= stringextract('pages="', '"', page)
@@ -1100,7 +1101,7 @@ def SeparateVideos(title, path, title_org):
 	page, msg = RequestUrl(CallerName='SeparateVideos', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 	PLog(page[:100])								# Ergebnis im XML-Format, hier in strings verarbeitet
 
 	# Rückwärtssuche: user_id -> username + realname 
@@ -1172,7 +1173,7 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	page, msg = RequestUrl(CallerName='ShowPhotoObject', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 	PLog(page[:100])								# Ergebnis im XML-Format, hier in strings verarbeitet
 	pagenr		= stringextract('page="', '"', page)	
 		
@@ -1203,7 +1204,7 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 			msg2 = fname
 			msg3 = "SLIDESTORE: %s" % (SLIDESTORE)
 			PLog(msg1); PLog(msg2); PLog(msg3)
-			xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, msg3)
+			MyDialog(msg1, msg2, msg3)
 			return li	
 		
 	image = 0
@@ -1286,12 +1287,14 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 				#	fanart=thumb, thumb=thumb, fparams=fparams, summary=summ, tagline=tagline)
 
 				image += 1
+				PLog("thumb_src: " + thumb_src)
 
-				li = xbmcgui.ListItem(
-					label=title,
-					thumbnailImage=thumb_src				# lokal oder Farm
-				)
-				li.setInfo(type='image', infoLabels={'Title': title}) # plot bei image nicht möglich
+				li = xbmcgui.ListItem()
+				li.setLabel(title)			
+				# 11.04.2020 setThumbnailImage ersetzt durch setArt
+				li.setArt({'thumb':thumb_src, 'icon':thumb_src})		# lokal oder Farm
+				
+				li.setInfo(type='image', infoLabels={'Title': title}) 	# plot bei image nicht möglich
 				xbmcplugin.addDirectoryItem(
 					handle=HANDLE,
 					url=thumb,								# lokal oder Farm
@@ -1382,7 +1385,7 @@ def ShowVideos(title,path,user_id,username,realname):
 	page, msg = RequestUrl(CallerName='ShowVideos', url=path)
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return 			
 	PLog(page[:100])								# Ergebnis im XML-Format, hier in strings verarbeitet
 	
@@ -1429,8 +1432,9 @@ def ShowVideos(title,path,user_id,username,realname):
 #  pagenr muss Aufrufer beisteuern
 def BuildPath(method, query_flickr, user_id, pagenr):
 	PLog('BuildPath: %s' % method)
-	PLog(user_id)
-	query_flickr = py2_decode(query_flickr)
+	PLog(user_id); 
+	query_flickr = unquote(query_flickr)
+	PLog(query_flickr);
 	
 	API_KEY = GetKey()							# flickr_keys.txt
 	PATH = "https://api.flickr.com/services/rest/?method=%s&api_key=%s"  % (method, API_KEY)	
@@ -1444,7 +1448,7 @@ def BuildPath(method, query_flickr, user_id, pagenr):
 	#	s. https://www.flickr.com/services/api/flickr.photos.search.html
 	if 'photos.search' in method or 'favorites.getList' in method or 'photosets.getList' in method or 'galleries.getPhotos'  in method:
 		extras  = BuildExtras()					# einschl. Dict['extras_list'] für Fotoabgleich 
-		if query_flickr.startswith('#') and query_flickr.endswith('#'):		# von MyPhotostream / MyFaves
+		if query_flickr.startswith('&') and query_flickr.endswith('&'):		# von MyPhotostream / MyFaves
 			query_flickr = ''												# alle listen
 		if 'photosets.getList' in method:									# primary_photo_extras statt extras
 			PATH =  PATH + "&text=%s&page=%s&primary_photo_extras=%s&format=rest" % (query_flickr, pagenr, extras)
@@ -1497,7 +1501,7 @@ def GetUserID(user):
 	PLog(page[:100])
 	if page == '': 
 		msg1 = msg
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, "", "")
+		MyDialog(msg1, '', '')
 		return
 		
 	if 'User not found'	in page:								# Flickr err code
@@ -1548,7 +1552,7 @@ def SearchUpdate(title):
 		msg1 = 'Updater: Github-Problem'
 		msg2 = 'update_available: False'
 		PLog("%s | %s" % (msg1, msg2))
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
+		MyDialog(msg1, msg2, '')
 		return li			
 
 	int_lv = ret[0]			# Version Github
@@ -1639,7 +1643,7 @@ def router(paramstring):
 					msg1 = "Modul %s ist nicht geladen" % dest_modul
 					msg2 = "Ursache unbekannt."
 					PLog(msg1)
-					xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
+					MyDialog(msg1, msg2, '')
 					xbmcplugin.endOfDirectory(HANDLE)
 
 			else:
