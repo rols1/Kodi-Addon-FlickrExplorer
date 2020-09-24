@@ -6,6 +6,7 @@
 ################################################################################
 #	01.12.2019 Migration Python3 Modul kodi_six + manuelle Anpassungen
 # 	18.03.2020 adjust_AddonXml: Anpassung python-Version an Kodi-Version
+#	13.04.2020 Aktualisierung adjust_AddonXml 
 ################################################################################
 # 
 
@@ -35,7 +36,7 @@ import zipfile, re
 import io 							# Python2+3 -> update() io.BytesIO für Zipfile
 
 import resources.lib.util_flickr as util
-PLog=util.PLog; stringextract=util.stringextract;
+PLog=util.PLog; stringextract=util.stringextract; MyDialog=util.MyDialog;
 cleanhtml=util.cleanhtml; RLoad=util.RLoad; RSave=util.RSave; 
  
 ADDON_ID      	= 'plugin.image.flickrexplorer'
@@ -110,7 +111,7 @@ def update_available(VERSION):
             
 ################################################################################
 def update(url, ver):
-	PLog('update:')	
+	PLog('update: ' + ver)	
 	
 	if ver:		
 		msg1 = 'Addon Update auf  Version {0}'.format(ver)
@@ -138,52 +139,79 @@ def update(url, ver):
 			msg1 = 'Update fehlgeschlagen'
 			msg2 = 'Error: ' + str(exception)
 												
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
+		MyDialog(msg1, msg2, '')
 	else:
 		msg1 = 'Update fehlgeschlagen'
 		msg2 =  'Version ' + ver + 'nicht gefunden!'
-		xbmcgui.Dialog().ok(ADDON_NAME, msg1, msg2, '')
+		MyDialog(msg1, msg2, '')
 
 ################################################################################
 # adjust_AddonXml:  Anpassung der python-Version in der neu installierten 
 #	addon.xml an die akt. Kodi-Version. Passende addon.xml bleibt unver-
 #	ändert. Da Kodi die addon.xml erst bei Neustart od. Addon-Installation
-#	prüft, muss die Änderung nicht bereits vor dem Speichern erfolgen.
+#	prüft, muss die Änderung nicht bereits vor dem Speichern im zip erfolgen.
 # 
-# Voraussetzung für replace: die Einträge in addon.xml entsprechen exakt 
-#	den Marken repl_leia + repl_matrix
+#	Python-Versionen s. https://kodi.wiki/view/Addon.xml#Dependency_versions
+#		Leia / Matrix		version="2.25.0" / version="3.0.0"
+#	Addon-Version (Bsp.):	version="2.8.5" /  version="2.8.5+matrix"
 # 
 # Nach Beendigung des Updates wird bei jedem Laden des Moduls util
 #	in check_AddonXml das Verzeichnis ADDON_DATA angepasst (s. dort)
-#
+# 
 def adjust_AddonXml():
 	PLog('adjust_AddonXml:')
-	repl_leia 	= 'addon="xbmc.python" version="2.25.0"'
-	repl_matrix = 'addon="xbmc.python" version="3.0.0"'
-	KODI_VERSION = xbmc.getInfoLabel('System.BuildVersion')
-	path = xbmc.translatePath('special://home/addons/' + ADDON_ID + '/addon.xml')
-	PLog(KODI_VERSION); PLog(path)
 	
+	path = xbmc.translatePath('special://home/addons/' + ADDON_ID + '/addon.xml')
+	PLog(path)
 	page = RLoad(path, abs_path=True)
 	change = False
-	if KODI_VERSION.startswith('19.'):					# Kodi Matrix
-		if repl_leia in page:
-			page = page.replace(repl_leia, repl_matrix)
-			page = py2_encode(page)
-			PLog('adjust_AddonXml: ersetze %s durch %s' % (repl_leia, repl_matrix))
-			RSave(path, page)
-			change = True	
-	else:												# Kodi <= Leia
-		if repl_matrix in page:
-			page = page.replace(repl_matrix, repl_leia)
-			page = py2_encode(page)
-			PLog('adjust_AddonXml: ersetze %s durch %s' % (repl_matrix, repl_leia))
-			RSave(path, page)		
-			change = True	
+	new_lines = []
+	lines = page.splitlines()
+	
+	for line in lines:
+		new_line = line
+		# PLog(line)		# Debug
+		if 'addon="xbmc.python"' in line or 'addon id=' in line:
+			new_line = adjust_line(line)
+			if new_line != line:
+				change = True
+				PLog('adjust_AddonXml_oldline: %s' % line)
+				PLog('adjust_AddonXml_newline: %s' % new_line)
+				new_line = line.replace(line, new_line)
+		new_lines.append(new_line)	
+	
 	if change == False:
 		PLog(u'adjust_AddonXml: addon.xml unverändert')
+	else:
+		page = '\n'.join(new_lines)
+		RSave(path, page)		
 	return	
 
+#------------------------------
+def adjust_line(line):
+	PLog('adjust_line:')
+	KODI_VERSION = xbmc.getInfoLabel('System.BuildVersion')
+	PLog(KODI_VERSION)
+	new_line = line
+
+	if KODI_VERSION.startswith('19.'):									# Anp. Kodi Matrix
+		if 'addon="xbmc.python"' in line:
+			python_ver = stringextract('version="', '"', line)
+			new_line = line.replace(python_ver, '3.0.0')
+		if 'addon id=' in line:
+			addon_ver = stringextract('version="', '"', line)								
+			if 'matrix' not in line:									# Anp. Addon-Version
+				new_line = line.replace(addon_ver, '%s+matrix' % addon_ver)	
+				
+	else:																# Anp. Kodi <= Leia
+		if 'addon="xbmc.python"' in line:
+			python_ver = stringextract('version="', '"', line)
+			new_line = line.replace(python_ver, '2.25.0')				# Anp. Python-Version
+		if 'addon id=' in line:
+			new_line = line.replace('+matrix', '')						# Anp. Addon-Version
+								
+	return new_line														# unverändert
+	
 ################################################################################
 # save_restore:  Cache sichern / wieder herstellen
 #	funktioniert nicht unter Windows im updater-Modul - daher hierher verlagert

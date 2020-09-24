@@ -20,6 +20,10 @@ elif PYTHON3:
 	from urllib.parse import quote, unquote, quote_plus, unquote_plus, urlencode, urljoin, urlparse, urlunparse, urlsplit, parse_qs
 	from urllib.request import Request, urlopen, urlretrieve
 	from urllib.error import URLError
+	try:									# https://github.com/xbmc/xbmc/pull/18345 (Matrix 19.0-alpha 2)
+		xbmc.translatePath = xbmcvfs.translatePath
+	except:
+		pass
 
 
 # Python
@@ -51,8 +55,8 @@ make_filenames=util.make_filenames; CheckStorage=util.CheckStorage; MyDialog=uti
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.6.8'	
-VDATE = '10.04.2020'
+VERSION =  '0.7.0'	
+VDATE = '22.09.2020'
 
 # 
 #	
@@ -869,17 +873,57 @@ def Gallery_single(title, gallery_id, user_id):
 # Verwendet wird die freie Textsuche (s. API): Treffer möglich in Titel, Beschreibung + Tags
 # Mehrere Suchbegriffe, getrennt durch Blanks, bewirken UND-Verknüpfung.
 #
+# 23.09.2020 Liste für letzte Suchbegriffe - hier ohne Rücksicht auf
+#	das Suchergebnis
+#
 def Search(query='', user_id='', pagenr=1, title=''):
 	PLog('Search: ' + query); 
 	# wir springen direkt - Ablauf:
 	#	Search -> Search_Work -> BuildPages (-> SeparateVideos -> ShowPhotoObject, ShowVideos)
 	
-	query = get_keyboard_input()	# Modul util
-	if  query == None or query.strip() == '':
-		return ""	
-	query = query.strip()
+	query_file 	= os.path.join("%s/search_terms") % ADDON_DATA
 	
-	Search_Work(query=py2_encode(query), user_id=user_id)	 
+	if query == '':													# Liste letzte Sucheingaben
+		query_recent = RLoad(query_file, abs_path=True)
+		if query_recent.strip():
+			head = L('Suche')
+			search_list = [head]
+			query_recent= query_recent.strip().splitlines()
+			query_recent=sorted(query_recent, key=str.lower)
+			search_list = search_list + query_recent
+			title = L('Suche') + ': ' +  L('im oeffentlichen Inhalt')
+			ret = xbmcgui.Dialog().select(title, search_list, preselect=0)	
+			PLog(ret)
+			if ret == -1:
+				PLog("Liste Sucheingabe abgebrochen")
+				return Main()
+			elif ret == 0:
+				query = ''
+			else:
+				query = search_list[ret]
+
+	if  query == '':
+		query = get_keyboard_input()	# Modul util
+		if  query == None or query.strip() == '':
+			return ""	
+	query = query.strip(); query_org = query
+	
+	# wg. fehlender Rückgabewerte speichern wir ohne Rücksicht
+	#	auf das Suchergebnis: 
+	if query:															# leere Eingabe vermeiden
+		query_recent= RLoad(query_file, abs_path=True)					# Sucheingabe speichern
+		query_recent= query_recent.strip().splitlines()
+		if len(query_recent) >= 24:										# 1. Eintrag löschen (ältester)
+			del query_recent[0]
+		query_org=py2_encode(query_org)										# unquoted speichern
+		if query_org not in query_recent:
+			query_recent.append(query_org)
+			query_recent = "\n".join(query_recent)
+			query_recent = py2_encode(query_recent)
+			RSave(query_file, query_recent)								# withcodec: code-error	
+
+	Search_Work(query=py2_encode(query), user_id=user_id)
+			 
 	return
 	
 # --------------------------	
@@ -945,12 +989,12 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		if page == '': 
 			msg1=msg			
 			MyDialog(msg1, '', '')
-			return li
+			return
 		PLog(page[:100])
 		if  '<rsp stat="ok">' not in page or 'pages="0"' in page:			
 			msg1 = L('kein Treffer')
 			MyDialog(msg1, '', '')
-			return li
+			return
 
 		pagemax		= stringextract('pages="', '"', page)
 		photototal 	=  stringextract('total="', '"', page)		# z.Z. n.b.
@@ -1453,6 +1497,7 @@ def BuildPath(method, query_flickr, user_id, pagenr):
 		if 'photosets.getList' in method:									# primary_photo_extras statt extras
 			PATH =  PATH + "&text=%s&page=%s&primary_photo_extras=%s&format=rest" % (query_flickr, pagenr, extras)
 		else:
+			query_flickr = quote(query_flickr)
 			PATH =  PATH + "&text=%s&page=%s&extras=%s&format=rest" % (query_flickr, pagenr, extras)
 			
 	if SETTINGS.getSetting('sort_order'):					# Bsp. 1 / date-posted-desc

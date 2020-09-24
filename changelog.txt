@@ -3,8 +3,20 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+24.09.2020	0.7.0	fanart.png changed to fanart.jpg (dto. in addon.xml).
+			Icons replaced: plugin-update.png, icon.png.
+			Matrix-Adaption 9.0-alpha 2: change xbmc.translatePath -> 
+			xbmcvfs.translatePath via try/except.
+			Matrix-Adaption in modul util_flickr: set xbmc.LOGNOTICE/xbmc.LOGINFO
+			dependent on PY2/PY3.
+			Search: list of last search-terms added (max. 25)
+			BuildPath: quoting for query terms to prevent url errors.
+
+13.04.2020	0.6.9	Updater-Modul: update adjust_AddonXml - consideration of changes
+			in addon.xml by addon-external tools (change of position of fields).	
+
 11.04.2020	0.6.8	Dialog-Calls for Kodi Matrix adapted: 
-			new function MyDialog (Modul util_tunein2017) added.
+			new function MyDialog (Modul util_flickr) added.
 			xbmcgui.Dialog().ok replaced with MyDialog().
 			xbmcgui.Dialog().yesno replaced with MyDialog(ok=False).
 			Special search mark '#' replaced with '&' (coding problem -> missing pics),
