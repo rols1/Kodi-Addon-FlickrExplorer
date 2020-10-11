@@ -55,8 +55,8 @@ make_filenames=util.make_filenames; CheckStorage=util.CheckStorage; MyDialog=uti
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.7.0'	
-VDATE = '22.09.2020'
+VERSION =  '0.7.1'	
+VDATE = '12.10.2020'
 
 # 
 #	
@@ -537,7 +537,9 @@ def MyAlbums(title, user_id, pagenr):
 		count_photos = stringextract('photos="', '"', rec)
 		secret =  stringextract('secret=\"', '\"', rec) 
 		serverid =  stringextract('server=\"', '\"', rec) 
-		farmid =  stringextract('farm=\"', '\"', rec) 	
+		farmid =  stringextract('farm=\"', '\"', rec) 
+		
+		title = unescape(title)	
 					
 		# Url-Format: https://www.flickr.com/services/api/misc.urls.html
 		# thumb_src = 'https://farm%s.staticflickr.com/%s/%s_%s_z.jpg' % (farmid, serverid, photoset_id, secret)  # m=small (240)
@@ -1490,7 +1492,7 @@ def BuildPath(method, query_flickr, user_id, pagenr):
 		
 	# Suchstring + Extras anfügen für Fotoabgleich - 
 	#	s. https://www.flickr.com/services/api/flickr.photos.search.html
-	if 'photos.search' in method or 'favorites.getList' in method or 'photosets.getList' in method or 'galleries.getPhotos'  in method:
+	if 'photos.search' in method or 'favorites.getList' in method or 'photosets' in method or 'galleries.getPhotos'  in method:
 		extras  = BuildExtras()					# einschl. Dict['extras_list'] für Fotoabgleich 
 		if query_flickr.startswith('&') and query_flickr.endswith('&'):		# von MyPhotostream / MyFaves
 			query_flickr = ''												# alle listen

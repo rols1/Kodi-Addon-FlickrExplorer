@@ -3,6 +3,10 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+12.10.2020	0.7.1	BuildPath: BuildExtras now included for all photosets (albums were
+			missed).
+			MyAlbums: title unescaped.	
+
 24.09.2020	0.7.0	fanart.png changed to fanart.jpg (dto. in addon.xml).
 			Icons replaced: plugin-update.png, icon.png.
 			Matrix-Adaption 9.0-alpha 2: change xbmc.translatePath -> 
@@ -12,7 +16,7 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 			Search: list of last search-terms added (max. 25)
 			BuildPath: quoting for query terms to prevent url errors.
 
-13.04.2020	0.6.9	Updater-Modul: update adjust_AddonXml - consideration of changes
+not on Github	0.6.9	Updater-Modul: update adjust_AddonXml - consideration of changes
 			in addon.xml by addon-external tools (change of position of fields).	
 
 11.04.2020	0.6.8	Dialog-Calls for Kodi Matrix adapted: 
