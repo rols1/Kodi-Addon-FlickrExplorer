@@ -3,6 +3,19 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+15.10.2020	0.7.2	BuildPath: added api-method for getting photos from photosets
+			(albums)
+			MyAlbumsSingle: photoset_id added for BuildPath, calculate number
+			of photos new (wrong flickr-output) and round up for calculate 
+			pages depending on settings.
+			MyAlbums: Fix building more-Buttons (page -> page_next).
+			BuildPages: maxPageContent (flickr: per_page) in build-loop added.
+			new function del_slides in modul util_flickr: cache-deletion with
+			dialog. 
+			Language file de.json: Fix '.' -> ','
+			Language files: terms für cache-deletion added.
+			L: py2_encode for comparison term1/string.			
+
 12.10.2020	0.7.1	BuildPath: BuildExtras now included for all photosets (albums were
 			missed).
 			MyAlbums: title unescaped.	

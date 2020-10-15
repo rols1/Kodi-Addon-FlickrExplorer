@@ -59,7 +59,15 @@
 	"zeige Videos": "show videos",
 	"zeige Fotos": "show photos",
 	"Ermittlung der Seitenzahl gescheitert": "Number of pages couldn't be located",
-	"Gezeigt wird nur die erste Seite": "only the first page will be shown"
+	"Gezeigt wird nur die erste Seite": "only the first page will be shown",
+	"Cache - delete gewaehlt!": "Cache - delete selected!",
+	"Sollen saemtliche Bilder wirklich geloescht werden?": "If you really want to delete all images?",
+	"Loeschfrist (Tage) wird zurueckgestellt auf 100": "Deletion period (days) is reset to 100",
+	"Bilderordner loeschen": "Delete image folders",
+	"delete Cache": "delete Cache",
+	"Bilder geloescht": "Images deleted"
+	"Bilder LOESCHEN": "DELETE images",
+	"Abbruch": "Cancel"
 }
 
 

@@ -52,11 +52,12 @@ cleanhtml=util.cleanhtml; decode_url=util.decode_url; unescape=util.unescape;
 transl_json=util.transl_json; repl_json_chars=util.repl_json_chars; seconds_translate=util.seconds_translate; 
 get_keyboard_input=util.get_keyboard_input; L=util.L; RequestUrl=util.RequestUrl; PlayVideo=util.PlayVideo;
 make_filenames=util.make_filenames; CheckStorage=util.CheckStorage; MyDialog=util.MyDialog;
+del_slides=util.del_slides;
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.7.1'	
-VDATE = '12.10.2020'
+VERSION =  '0.7.2'	
+VDATE = '15.10.2020'
 
 # 
 #	
@@ -161,7 +162,14 @@ PLog('Addon: ClearUp')
 ARDStartCacheTime = 300						# 5 Min.	
  
 # Dict: Simpler Ersatz für Dict-Modul aus Plex-Framework
-days = int(SETTINGS.getSetting('DICT_store_days'))
+days = SETTINGS.getSetting('DICT_store_days')
+if days == 'delete':						# slides-Ordner löschen 
+	del_slides(SLIDESTORE)
+	SETTINGS.setSetting('DICT_store_days','100')
+	xbmc.sleep(100)
+	days = 100
+else:
+	days = int(days)
 Dict('ClearUp', days)				# Dict bereinigen 
 	
 																		
@@ -200,7 +208,7 @@ def ValidatePrefs():
 	PLog('loc: %s' % loc)
 	PLog('loc_file: %s' % loc_file)
 	PLog('loc_browser: %s' % loc_browser)
-
+	
 ####################################################################################################
 def Main():
 	PLog('Main:'); 
@@ -498,6 +506,9 @@ def MyGalleries(title, user_id, offset=0):
 # Bezeichnung in Flickr-API: Photosets
 #	Mehrere Seiten - anders als MyGalleries
 #	Flickr-Ausgabe im xml-Format.
+# Workflow:
+# 	MyAlbums -> MyAlbumsSingle -> BuildPath -> BuildPages -> SeparateVideos -> ShowPhotoObject
+#
 def MyAlbums(title, user_id, pagenr):
 	PLog('MyAlbums:'); PLog('page: ' + str(pagenr))
 	title_org = title							# title_org: Username
@@ -539,52 +550,65 @@ def MyAlbums(title, user_id, pagenr):
 		serverid =  stringextract('server=\"', '\"', rec) 
 		farmid =  stringextract('farm=\"', '\"', rec) 
 		
-		title = unescape(title)	
+		title=unescape(title); title=repl_json_chars(title)
 					
 		# Url-Format: https://www.flickr.com/services/api/misc.urls.html
 		# thumb_src = 'https://farm%s.staticflickr.com/%s/%s_%s_z.jpg' % (farmid, serverid, photoset_id, secret)  # m=small (240)
 		# Anforderung Url-Set in BuildPath -> BuildExtras
 		thumb_src = stringextract('url_z="', '"', rec)	# z=640
 		
-		summ = "%s %s (%s)" % (count_photos, L('Fotos'), title_org)
+		summ = "%s %s (%s)" % (count_photos, L('Fotos'), title_org)	# Anzahl stimmt nicht
+#		anz = count_photos
+#		if int(count_photos) <= 10:
+#			anz = '<= 10'
+#		if int(count_photos) >= 10:
+#			anz = '> 10'
+	
+#		summ = "%s: %s (%s)" % (L('Fotos'), anz, title_org)
 		if description:
 			summ = '%s | %s' % (summ, description)
 		img_src = R(ICON_FLICKR)
 		
+		PLog('1Satz:')
 		PLog(title);PLog(photoset_id);PLog(thumb_src);
 		title=py2_encode(title); 
-		fparams="&fparams={'title': '%s', 'photoset_id': '%s', 'user_id': '%s'}" % (quote(title), photoset_id, user_id)
+		fparams="&fparams={'title': '%s', 'photoset_id': '%s', 'user_id': '%s'}" % (quote(title), photoset_id, 
+			user_id)
 		addDir(li=li, label=title, action="dirList", dirID="MyAlbumsSingle", fanart=thumb_src, thumb=thumb_src, 
 			fparams=fparams, summary=summ)
 				
 	# auf mehr prüfen:
 	PLog(pagenr); PLog(pages);
 	page_next = int(pagenr) + 1
-	tag = 'total: %s %s' % (alben_max, L('Alben'))
+	tag = 'total: %s %s, %s %s ' % (alben_max, L('Alben'), pages, L('Seiten'))
 	title_org=py2_encode(title_org); 
-	if (int(pagenr)+1) <= int(pages):
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
+	if page_next <= int(pages):
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(page_next))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_MEHR_1), thumb=R(ICON_MEHR_1), 
 			fparams=fparams, summary=L('Mehr (+ 1)'), tagline=tag)
-	if (int(pagenr)+10) < int(pages):
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
+	if (page_next+10) < int(pages):
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(page_next))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_MEHR_10), thumb=R(ICON_MEHR_10), 
 			fparams=fparams, summary=L('Mehr (+ 10)'), tagline=tag)
-	if (int(pagenr)+100) < int(pages):
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
+	if (page_next+100) < int(pages):
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(page_next))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_MEHR_100), thumb=R(ICON_MEHR_100), 
 			fparams=fparams, summary=L('Mehr (+ 100)'), tagline=tag)
 	# weniger
-	if  int(pagenr) > 1:
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
+	page_next = int(pagenr) - 1
+	if  page_next >= 1:
+		page_next = page_next - 1
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(page_next))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_WENIGER_1), thumb=R(ICON_WENIGER_1), 
 			fparams=fparams, summary=L('Weniger (- 1)'), tagline=tag)
-	if int(pagenr) > 10:
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
+	if page_next > 10:
+		page_next = page_next - 10
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(page_next))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_WENIGER_10), thumb=R(ICON_WENIGER_10), 
 			fparams=fparams, summary=L('Weniger (- 10)'), tagline=tag)
-	if int(pagenr) > 100:
-		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(pagenr))
+	if page_next > 100:
+		page_next = page_next - 100
+		fparams="&fparams={'title': '%s', 'user_id': '%s', 'pagenr': '%s'}" % (quote(title_org), user_id, int(page_next))
 		addDir(li=li, label=title_org, action="dirList", dirID="MyAlbums", fanart=R(ICON_WENIGER_100), thumb=R(ICON_WENIGER_100), 
 			fparams=fparams, summary=L('Weniger (- 100)'), tagline=tag)
 							
@@ -595,12 +619,14 @@ def MyAlbums(title, user_id, pagenr):
 #	Mehrere Seiten - anders als MyGalleries
 #	Flickr-Ausgabe im xml-Format.
 # Seitensteuerung durch BuildPages (-> SeparateVideos -> ShowPhotoObject, ShowVideos)
+#
 def MyAlbumsSingle(title, photoset_id, user_id, pagenr=1):
 	PLog('MyAlbumsSingle:')
 	
-	path = BuildPath(method='flickr.photosets.getPhotos', query_flickr='', user_id=user_id, pagenr=1) 
-	path = path + "&photoset_id=%s"  % (photoset_id)
-				
+	mymethod = 'flickr.photosets.getPhotos'
+	path = BuildPath(method=mymethod, query_flickr=mymethod, user_id=user_id, pagenr=1, 
+		photoset_id=photoset_id) 
+
 	page, msg = RequestUrl(CallerName='MyAlbumsSingle', url=path)
 	if page == '': 
 		msg1 = msg
@@ -609,7 +635,20 @@ def MyAlbumsSingle(title, photoset_id, user_id, pagenr=1):
 	PLog(page[:100])
 	pagemax		= stringextract('pages="', '"', page)
 	perpage 	=  stringextract('perpage="', '"', page)	
-	PLog(pagemax)
+	PLog(pagemax); PLog(perpage)					# flickr-Angabe stimmt nicht mit?
+	
+	records = blockextract('<photo id', '', page)	# ShowPhotoObject:  nur '<photo id'-Blöcke zulässig 	
+	maxPageContent = SETTINGS.getSetting('maxPageContent')
+	mypagemax = len(records) / int(maxPageContent)
+	
+	PLog('2Satz:')
+	PLog('records: %s, maxPageContent: %s, mypagemax: %s' % (str(len(records)), maxPageContent, str(mypagemax)))
+	mypagemax = int(round(mypagemax + 0.49))		# zwangsw. aufrunden
+	PLog('mypagemax: %s' % str(mypagemax))
+
+# todo: fotozahl doch korrekt - BuildPages mit flicker-Werten aufrufen od.
+#	hier neue mehr-buttons -> SeperateVideos
+# cache löschen via setting
 	
 	searchname = '#MyAlbumsSingle#'
 	li = BuildPages(title=title, searchname=searchname, SEARCHPATH=path, pagemax=pagemax, perpage=perpage, 
@@ -692,7 +731,7 @@ def FlickrPeople(pagenr=1):
 		summ = "%s: %s" % (L('Fotos'), photosCount)
 		summ = summ + " | %s: %s | Alias: %s" % (L('Followers'), followersCount, alias)
 		
-		PLog('Satz')
+		PLog('5Satz')
 		PLog("username: %s, nsid: %s"	% (username, nsid)); PLog(title)
 		if realname:
 			label=realname
@@ -801,7 +840,7 @@ def WebGalleries(pagenr):
 		comments = mystrip(comments) 
 		summ = "%s | %s | %s" % (nr_shown, views, comments )
 			
-		PLog('Satz:')	
+		PLog('6Satz:')	
 		PLog(href);PLog(img_src);PLog(title);PLog(summ);PLog(gallery_id);
 		title=py2_encode(title);
 		fparams="&fparams={'title': '%s', 'gallery_id': '%s', 'user_id': '%s'}" % (quote(title), gallery_id, '')
@@ -980,7 +1019,7 @@ def Search_Work(query, user_id, SEARCHPATH=''):
 #	"Originalbild" gewählt ist. Bei kleineren Größen rechnet Flickr die weggefallenen
 #	Seiten nicht heraus - dann zeigt das Addon wieder die erste Seite, obwohl laut
 #	noch weitere Seiten existieren. 
-def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
+def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1,  photototal=1):
 	PLog('BuildPages:')
 	PLog('SEARCHPATH: %s' % (SEARCHPATH))
 	PLog(pagenr); PLog(title)
@@ -1002,7 +1041,8 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		photototal 	=  stringextract('total="', '"', page)		# z.Z. n.b.
 		perpage 	=  stringextract('perpage="', '"', page)	# Flickr default: 100 pro Seite
 		pagenr 		= 1											# Start mit Seite 
-		PLog('Flickr: pagemax %s, total %s, perpage %s' % (pagemax, photototal, perpage))
+		
+	PLog('Flickr: pagemax %s, total %s, perpage %s' % (pagemax, photototal, perpage))
 	
 	pagenr = int(pagenr); pagemax = int(pagemax); 			
 	maxPageContent = 500										# Maximum Flickr	
@@ -1049,8 +1089,9 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1):
 		pos = path2.find('&')					# akt. pagenr abschneiden
 		path2 = path2[pos:]
 		path = path1 + '&page=%s' %  str(pagenr) + path2 # Teil1 + Teil2 wieder verbinden
+		path = path + '&per_page=%s' %  str(maxPageContent)
 		
-		PLog('Satz')
+		PLog('3Satz:')
 		PLog("i %d, pagenr %d" % (i, pagenr))
 		PLog(path);  # PLog(path1); PLog(path2);
 		# SeparateVideos -> ShowPhotoObject, ShowVideos:
@@ -1463,7 +1504,7 @@ def ShowVideos(title,path,user_id,username,realname):
 			"Video %s| %s" % (str(i), title)
 		summ  = owner
 			
-		PLog('Satz:')
+		PLog('4Satz:')
 		PLog(title); PLog(pid); PLog(img_src); PLog(url);
 		url=py2_encode(url); title=py2_encode(title); img_src=py2_encode(img_src); summ=py2_encode(summ); 	
 		fparams="&fparams={'url': '%s', 'title': '%s', 'thumb': '%s', 'Plot': '%s', 'sub_path': '', 'Merk': ''}" %\
@@ -1476,7 +1517,7 @@ def ShowVideos(title,path,user_id,username,realname):
 #---------------------------------------------------------------- 
 #  method: Flickr-API-Methode
 #  pagenr muss Aufrufer beisteuern
-def BuildPath(method, query_flickr, user_id, pagenr):
+def BuildPath(method, query_flickr, user_id, pagenr, photoset_id=''):
 	PLog('BuildPath: %s' % method)
 	PLog(user_id); 
 	query_flickr = unquote(query_flickr)
@@ -1498,6 +1539,8 @@ def BuildPath(method, query_flickr, user_id, pagenr):
 			query_flickr = ''												# alle listen
 		if 'photosets.getList' in method:									# primary_photo_extras statt extras
 			PATH =  PATH + "&text=%s&page=%s&primary_photo_extras=%s&format=rest" % (query_flickr, pagenr, extras)
+		if 'photosets.getPhotos' in method:									# primary_photo_extras statt extras
+			PATH =  PATH + "&photoset_id=%s&page=%s&primary_photo_extras=%s&format=rest" % (photoset_id, pagenr, extras)
 		else:
 			query_flickr = quote(query_flickr)
 			PATH =  PATH + "&text=%s&page=%s&extras=%s&format=rest" % (query_flickr, pagenr, extras)

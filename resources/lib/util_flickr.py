@@ -60,6 +60,7 @@ ADDON_DATA		= os.path.join("%s", "%s", "%s") % (USERDATA, "addon_data", ADDON_ID
 
 DICTSTORE 		= os.path.join("%s/Dict") % ADDON_DATA
 
+ICON_FLICKR 		= 'icon-flickr.png'						
 
 ###################################################################################################
 #									Hilfsfunktionen Kodiversion
@@ -279,7 +280,7 @@ def name(**variables):
 # leere Ordner werden entfernt
 def ClearUp(directory, seconds):	
 	PLog('ClearUp: %s, sec: %s' % (directory, seconds))	
-	PLog('älter als: ' + seconds_translate(seconds))
+	PLog('älter als: ' + seconds_translate(seconds, days=True))
 	now = time.time()
 	cnt_files=0; cnt_dirs=0
 	try:
@@ -288,13 +289,16 @@ def ClearUp(directory, seconds):
 		PLog("ClearUp: globFiles " + str(len(files)))
 		# PLog(" globFiles: " + str(files))
 		for f in files:
-			# PLog(os.stat(f).st_mtime)
+			#PLog(os.stat(f).st_mtime)
+			#PLog(now - seconds)
 			if os.stat(f).st_mtime < (now - seconds):
-				os.remove(f)
-				cnt_files = cnt_files + 1
-			if os.path.isdir(f):		# Leerverz. entfernen
-				if not os.listdir(f):
-					os.rmdir(f)
+				if os.path.isfile(f):	
+					PLog('entfernte_Datei: ' + f)
+					os.remove(f)
+					cnt_files = cnt_files + 1
+				if os.path.isdir(f):		# Verz. ohne Leertest entf.
+					PLog('entferntes Verz.: ' + f)
+					shutil.rmtree(f, ignore_errors=True)
 					cnt_dirs = cnt_dirs + 1
 		PLog("ClearUp: entfernte Dateien %s, entfernte Ordner %s" % (str(cnt_files), str(cnt_dirs)))	
 		return True
@@ -302,6 +306,26 @@ def ClearUp(directory, seconds):
 		PLog(str(exception))
 		return False
 
+#----------------------------------------------------------------
+# slides-Ordner löschen (Setting DICT_store_days=delete)
+# Aufruf Kopf Haupt-PRG, dto Rücksetzung auf 100
+def del_slides(SLIDESTORE):
+	PLog('del_slides:')
+	
+	msg1 = L(u"Cache - delete gewaehlt!")
+	msg2 = L(u"Sollen saemtliche Bilder wirklich geloescht werden?")
+	msg3 = L(u"Loeschfrist (Tage) wird zurueckgestellt auf 100")
+	head = NAME + ": " + L(u"Bilderordner loeschen")
+	ret = MyDialog(msg1=msg1, msg2=msg2, msg3=msg3, ok=False, cancel=L('Abbruch'), yes=L('Bilder LOESCHEN'), heading=head)
+	if ret == 1:
+		ClearUp(SLIDESTORE, 1)
+		icon = R(ICON_FLICKR)
+		msg1 = L(u'delete Cache')
+		msg2 = L(u'Bilder geloescht')
+		xbmcgui.Dialog().notification(msg1,msg2,icon,5000)
+		
+	return
+	
 #----------------------------------------------------------------  
 # Prüft directory auf limit-Überschreitung,
 #	löscht älteste Unterverzeichnisse bzw. 
@@ -712,7 +736,7 @@ def get_keyboard_input():
 # Die Plex-Lösung von czukowski entfällt damit.
 
 def L(string):	
-	PLog('L: ' + string)
+	PLog('Lstring: ' + string)
 	loc_file = Dict('load', 'loc_file')
 	if loc_file == False or os.path.exists(loc_file) == False:	
 		return 	string
@@ -723,12 +747,12 @@ def L(string):
 	for line in lines:
 		term1 = line.split('":')[0].strip()
 		term1 = term1.strip()
-		term1 = term1.replace('"', '')			# Hochkommata entfernen
+		term1 = term1.replace('"', '')				# Hochkommata entfernen
 		# PLog(term1)
-		if term1 == string:						# string stimmt mit Basis-String überein?
-			lstring = line.split(':')[1]		# 	dann Ziel-String zurückgeben
+		if py2_encode(term1) == py2_encode(string):	# string stimmt mit Basis-String überein?
+			lstring = line.split(':')[1]			# 	dann Ziel-String zurückgeben
 			lstring = lstring.strip()
-			lstring = lstring.replace('"', '') 	# Hochkommata + Komma entfernen
+			lstring = lstring.replace('"', '') 		# Hochkommata + Komma entfernen
 			lstring = lstring.replace(',', '')
 			break
 			

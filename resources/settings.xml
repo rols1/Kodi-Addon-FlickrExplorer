@@ -37,7 +37,7 @@
 	
 
 	 <category label="439">
-		<setting label="30501" type="select" values="1|10|30|100|500" default="100" id="DICT_store_days"/>
+		<setting label="30501" type="select" values="delete|1|10|30|100|500" default="100" id="DICT_store_days"/>
 		<setting label="30502" type="select" values="100 MBytes|500 MBytes|1 GByte|2 GBytes|5 GBytes|10 GBytes" default="100 MBytes" id="max_slide_store"/>
 	</category>
 				

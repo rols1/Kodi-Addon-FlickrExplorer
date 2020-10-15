@@ -18,7 +18,7 @@
 	"Stoerungsmeldungen an Forum oder rols1@gmx.de": "Störungsmeldungen an Forum oder rols1@gmx.de",
 	"Zurueck zu MyFlickr": "Zurück zu MyFlickr",
 	"Zurueck zu": "Zurück zu",
-	"Zurueck zum Hauptmenue": "Zurueck zum Hauptmenü",
+	"Zurueck zum Hauptmenue": "Zurück zum Hauptmenü",
 	"Keine Gallerien gefunden": "Keine Gallerien gefunden",
 	"Keine Alben gefunden": "Keine Alben gefunden",
 	"User nicht gefunden gefunden": "User not found",
@@ -56,9 +56,17 @@
 	"Originalbild": "Original Photo",
 	"Videos zeigen, falls verfuegbar": "Videos zeigen, falls verfügbar"
 	"zeige Videos": "zeige Videos",
-	"zeige Fotos": "zeige Fotos".
+	"zeige Fotos": "zeige Fotos",
 	"Ermittlung der Seitenzahl gescheitert": "Ermittlung der Seitenzahl gescheitert",
 	"Gezeigt wird nur die erste Seite": "Gezeigt wird nur die erste Seite"
+	"Cache - delete gewaehlt!": "Cache - delete gewählt!",
+	"Sollen saemtliche Bilder wirklich geloescht werden?": "Sollen sämtliche Bilder wirklich gelöscht werden?",
+	"Loeschfrist (Tage) wird zurückgestellt auf 100": "Löschfrist (Tage) wird zurückgestellt auf 100",
+	"Bilderordner loeschen": "Bilderordner löschen",
+	"delete Cache": "delete Cache",
+	"Bilder geloescht": "Bilder gelöscht",
+	"Bilder LOESCHEN": "Bilder LÖSCHEN",
+	"Abbruch": "Abbruch"
 }
 
 
