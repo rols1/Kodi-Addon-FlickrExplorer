@@ -5,13 +5,12 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 
 15.10.2020	0.7.2	BuildPath: added api-method for getting photos from photosets
 			(albums)
-			MyAlbumsSingle: photoset_id added for BuildPath, calculate number
-			of photos new (wrong flickr-output) and round up for calculate 
-			pages depending on settings.
+			MyAlbumsSingle: photoset_id added for BuildPath.
 			MyAlbums: Fix building more-Buttons (page -> page_next).
 			BuildPages: maxPageContent (flickr: per_page) in build-loop added.
 			new function del_slides in modul util_flickr: cache-deletion with
-			dialog. 
+			dialog.
+			Settings DICT_store_days: term delete added. 
 			Language file de.json: Fix '.' -> ','
 			Language files: terms für cache-deletion added.
 			L: py2_encode for comparison term1/string.			

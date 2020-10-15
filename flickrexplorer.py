@@ -558,13 +558,6 @@ def MyAlbums(title, user_id, pagenr):
 		thumb_src = stringextract('url_z="', '"', rec)	# z=640
 		
 		summ = "%s %s (%s)" % (count_photos, L('Fotos'), title_org)	# Anzahl stimmt nicht
-#		anz = count_photos
-#		if int(count_photos) <= 10:
-#			anz = '<= 10'
-#		if int(count_photos) >= 10:
-#			anz = '> 10'
-	
-#		summ = "%s: %s (%s)" % (L('Fotos'), anz, title_org)
 		if description:
 			summ = '%s | %s' % (summ, description)
 		img_src = R(ICON_FLICKR)
@@ -643,12 +636,8 @@ def MyAlbumsSingle(title, photoset_id, user_id, pagenr=1):
 	
 	PLog('2Satz:')
 	PLog('records: %s, maxPageContent: %s, mypagemax: %s' % (str(len(records)), maxPageContent, str(mypagemax)))
-	mypagemax = int(round(mypagemax + 0.49))		# zwangsw. aufrunden
-	PLog('mypagemax: %s' % str(mypagemax))
-
-# todo: fotozahl doch korrekt - BuildPages mit flicker-Werten aufrufen od.
-#	hier neue mehr-buttons -> SeperateVideos
-# cache löschen via setting
+	# mypagemax = int(round(mypagemax + 0.49))		# zwangsw. aufrunden - entfällt
+	# PLog('mypagemax: %s' % str(mypagemax))
 	
 	searchname = '#MyAlbumsSingle#'
 	li = BuildPages(title=title, searchname=searchname, SEARCHPATH=path, pagemax=pagemax, perpage=perpage, 
