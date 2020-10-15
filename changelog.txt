@@ -3,6 +3,10 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+15.10.2020	0.7.3	ShowPhotoObject: for albums-lists api-call photos.getSizes added to
+			get the sizes-list for every photo in the loop. If no Original-mark 
+			is found, the addon takes the last list-entry (ascending sorted).   
+
 15.10.2020	0.7.2	BuildPath: added api-method for getting photos from photosets
 			(albums)
 			MyAlbumsSingle: photoset_id added for BuildPath.

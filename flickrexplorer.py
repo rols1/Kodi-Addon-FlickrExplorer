@@ -56,7 +56,7 @@ del_slides=util.del_slides;
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.7.2'	
+VERSION =  '0.7.3'	
 VDATE = '15.10.2020'
 
 # 
@@ -1320,6 +1320,34 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 		else:									# Favs-Url wie thumb_src ohne extra (m)
 			img_src = 'https://farm%s.staticflickr.com/%s/%s_%s.jpg' % (farmid, serverid, pid, secret)
 			summ = owner 						# falls ohne Größenangabe
+		
+		# für Originalbilder in Alben zusätzl. getSizes-Call erforderlich:	
+		PLog('Mark0')
+		if "photosets.getPhotos" in path:		# Output ohne Url-Liste für Größen
+			if SETTINGS.getSetting('max_width') == "Originalbild":
+				PLog('try_info_call:')
+				API_KEY = GetKey()	
+				p1 = "https://www.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=%s" % API_KEY
+				p2 = "&photo_id=%s&format=rest" % (pid)
+				info_url = p1 + p2
+				page, msg = RequestUrl(CallerName='ShowPhotoObject2', url=info_url)
+				if page:
+					sizes = blockextract('<size label', '', page)
+					source=''
+					for size in sizes:
+						if '"Original"' in size:
+							width = stringextract('width="', '"', s)	  	# z.B. "1600"
+							height = stringextract('height="', '"', s)	  	# z.B. "1200"
+							source = stringextract('source="', '"', s)
+							break
+						else:	# Original kann fehlen, letzte Zeile auswerten (aufsteigend sort.)
+							width = stringextract('width="', '"', sizes[-1])	  	# z.B. "3968"
+							height = stringextract('height="', '"', sizes[-1])	  	# z.B. "2907"
+							source = stringextract('source="', '"', sizes[-1])
+							
+					if source:
+						img_src = source
+						summ = owner + ' | ' + '%s: %s x %s' % (Imagesize, width, height)							
 			
 		PLog(descr); PLog(img_src); # PLog(thumb_src);	PLog(pid);PLog(owner);	# bei Bedarf
 		
