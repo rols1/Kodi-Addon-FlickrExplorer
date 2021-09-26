@@ -3,6 +3,10 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+26.09.2021	0.7.4	RequestUrl: ssl.SSLContext(ssl.PROTOCOL_TLSv1) changed to
+ 			ssl.create_default_context() for security reasons. 
+ 			RequestUrl: UrlopenTimeout changed from 3 to 10 (sec).	
+
 15.10.2020	0.7.3	ShowPhotoObject: for albums-lists api-call photos.getSizes added to
 			get the sizes-list for every photo in the loop. If no Original-mark 
 			is found, the addon takes the last list-entry (ascending sorted).   

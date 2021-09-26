@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # util_flickr.py
 #
-# Stand: 23.09.2020	
+# Stand: 26.09.2021	
 
 # Python3-Kompatibilität:
 from __future__ import absolute_import
@@ -768,7 +768,7 @@ def L(string):
 #
 def RequestUrl(CallerName, url):
 	PLog('RequestUrl: ' + url)
-	UrlopenTimeout = 3			# Timeout sec
+	UrlopenTimeout = 10			# Timeout sec
 	
 	msg=''
 	loc = Dict('load', 'loc')						# Bsp. fr, 	loc_browser nicht benötigt
@@ -783,7 +783,7 @@ def RequestUrl(CallerName, url):
 		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3')
 		req.add_header('Accept-Language',  '%s, en;q=0.9, %s;q=0.7'	% (loc, loc))
 			
-		gcontext = ssl.SSLContext(ssl.PROTOCOL_TLSv1)  
+		gcontext = ssl.create_default_context()
 		gcontext.check_hostname = False
 		gcontext.verify_mode = ssl.CERT_NONE
 		ret = urlopen(req, context=gcontext, timeout=UrlopenTimeout)
