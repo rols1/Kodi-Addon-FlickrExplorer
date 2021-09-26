@@ -58,7 +58,7 @@ del_slides=util.del_slides;
 
 VERSION =  '0.7.3'	
 VDATE = '15.10.2020'
- 
+
 # 
 #	
 #
