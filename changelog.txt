@@ -3,6 +3,8 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+28.01.2023	0.7.5	Modul updater: Aktualisierung adjust_line für Kodi 20 Nexus.
+
 26.09.2021	0.7.4	RequestUrl: ssl.SSLContext(ssl.PROTOCOL_TLSv1) changed to
  			ssl.create_default_context() for security reasons. 
  			RequestUrl: UrlopenTimeout changed from 3 to 10 (sec).	
