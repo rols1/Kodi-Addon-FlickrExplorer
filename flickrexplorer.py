@@ -56,8 +56,8 @@ del_slides=util.del_slides;
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.7.5'	
-VDATE = '29.01.2023'
+VERSION =  '0.7.6'	
+VDATE = '05.04.2023'
 
 # 
 #	
@@ -246,10 +246,11 @@ def Main():
 		fparams=fparams)
 
 	title = L('Flickr Nutzer')
-	summ = L("Suche Nutzer und ihre Inhalte") + ': '  + str(SETTINGS.getSetting('FlickrPeople'))	
+	tag = L("Suche Nutzer und ihre Inhalte") + ': [B]%s[/B]'  % str(SETTINGS.getSetting('FlickrPeople'))	
+	summ = L(u"Der Name für FlickrPeople kann im Setting geändert werden")
 	fparams="&fparams={}"
 	addDir(li=li, label=title, action="dirList", dirID="FlickrPeople", fanart=R('icon-user.png'), thumb=R('icon-user.png'), 
-		fparams=fparams, summary=summ)
+		fparams=fparams, tagline=tag, summary=summ)
 	
 	# Updater-Modul einbinden:		
 	repo_url = 'https://github.com/{0}/releases/'.format(GITHUB_REPOSITORY)
@@ -680,12 +681,13 @@ def FlickrPeople(pagenr=1):
 	#  totalItems[2]  enthält die Anzahl. Falls page zu groß (keine weiteren 
 	#	Ergebnisse), enthalten sie 0.
 	try:
-		totalItems =  re.findall(r'totalItems":(\d+)\}\]', page)  # Bsp. "totalItems":7}]
+		totalItems =  re.findall(r'totalItems":(\d+)', page)  # Bsp. "totalItems":7}]
 		PLog(totalItems)
 		total = int(totalItems[0])
 	except Exception as exception:
 		PLog(str(exception))
 	PLog("total: " + str(total))
+	page = unquote(page)							# "44837724%40N07" -> "44837724@N07"
 	
 	records = blockextract('_flickrModelRegistry":"search-contact-models"', 'flickrModelRegistry', page)
 	PLog(len(records))

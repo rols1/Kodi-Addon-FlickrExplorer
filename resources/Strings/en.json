@@ -67,7 +67,8 @@
 	"delete Cache": "delete Cache",
 	"Bilder geloescht": "Images deleted"
 	"Bilder LOESCHEN": "DELETE images",
-	"Abbruch": "Cancel"
+	"Abbruch": "Cancel",
+	"Der Name für FlickrPeople kann im Setting geändert werden": "The name for FlickrPeople can be changed in the Setting"
 }
 
 

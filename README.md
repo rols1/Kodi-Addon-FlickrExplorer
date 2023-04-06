@@ -29,14 +29,16 @@ EMail: rols1@gmx.de
 INSTALLATION
 ===================
 ## english:
-- Download zip-file from https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
+- Kodi 19 (Matrix): Download zip-file from https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
+- Kodi 18 (Leia, Krypton): [Krypton-Version kodinerds.net](https://repo.kodinerds.net/index.php?action=list&scope=all&version=krypton/)
 - Download script.module.kodi-six.zip from https://github.com/romanvm/kodi.six/releases
 - choose downloaded zip-files with your Kodi-Browser
 - start addon and make the appropriate settings
 - [further instructions with pictures](https://kodi.wiki/view/HOW-TO:Install_add-ons_from_zip_files) 
 
 ## deutsch:
-- Download der zip-Datei hier: https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
+- Kodi 19 (Matrix): Download der zip-Datei https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases/latest
+- Kodi 18 (Leia, Krypton): [Krypton-Version kodinerds.net](https://repo.kodinerds.net/index.php?action=list&scope=all&version=krypton/)
 - Download script.module.kodi-six.zip hier https://github.com/romanvm/kodi.six/releases
 - Beide zip-Dateien mittels Kodi-Menü Addons/Addon-Browser installieren
 - Addon öffen und Addon-Einstellungen anpassen.

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # util_flickr.py
 #
-# Stand: 26.09.2021	
+# Stand: 05.04.2023
 
 # Python3-Kompatibilität:
 from __future__ import absolute_import
@@ -800,9 +800,8 @@ def RequestUrl(CallerName, url):
 		ret.close()
 		# PLog(page[:160])
 	except Exception as exception:
-		error_txt = "RequestUrl: %s-1: %s" % (CallerName, str(exception)) 
-		error_txt = error_txt + ' | ' + url				 			 	 
-		msg =  error_txt
+		error_txt = u"RequestUrl: %s-1: %s" % (CallerName, str(exception)) 
+		msg=error_txt
 		PLog(msg)
 		page=''
 				
@@ -810,7 +809,9 @@ def RequestUrl(CallerName, url):
 		return page, msg
 	else:
 		PLog(page[:100])
-		page = page.decode('utf-8')
+		if page:
+			page = page.decode('utf-8')
+		
 		return page, msg		
 		
 ####################################################################################################
