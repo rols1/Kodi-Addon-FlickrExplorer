@@ -57,8 +57,8 @@ del_slides=util.del_slides;
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.7.6'	
-VDATE = '05.04.2023'
+VERSION =  '0.7.7'	
+VDATE = '18.07.2025'
 
 # 
 #	

@@ -3,6 +3,9 @@ CHANGE HISTORY 	Kodi-Addon-FlickrExplorer
 		Releases: 	https://github.com/rols1/Kodi-Addon-FlickrExplorer/releases
 --------------
 
+18.07.2025	0.7.7	Pull request from cscd98 merged (Add safe search, keep history 
+			option, fix translation) - rols1/Kodi-Addon-FlickrExplorer/pull/4
+
 06.04.2023	0.7.6	RequestUrl: url in error_txt removed (too long), fix page.decode
 			(should not empty).
 			FlickrPeople: adaptations to changes on the website (format totalItems, 
