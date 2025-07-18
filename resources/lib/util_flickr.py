@@ -40,6 +40,7 @@ import re				# u.a. Reguläre Ausdrücke, z.B. in CalculateDuration
 NAME		= 'FlickrExplorer'
 KODI_VERSION = xbmc.getInfoLabel('System.BuildVersion')
 
+ADDON = xbmcaddon.Addon()
 ADDON_ID      	= 'plugin.image.flickrexplorer'
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
@@ -61,6 +62,8 @@ ADDON_DATA		= os.path.join("%s", "%s", "%s") % (USERDATA, "addon_data", ADDON_ID
 DICTSTORE 		= os.path.join("%s/Dict") % ADDON_DATA
 
 ICON_FLICKR 		= 'icon-flickr.png'						
+
+KEEP_SEARCH_HISTORY = SETTINGS.getSettingBool('keep_search_history')
 
 ###################################################################################################
 #									Hilfsfunktionen Kodiversion
@@ -310,8 +313,12 @@ def ClearUp(directory, seconds):
 # slides-Ordner löschen (Setting DICT_store_days=delete)
 # Aufruf Kopf Haupt-PRG, dto Rücksetzung auf 100
 def del_slides(SLIDESTORE):
+	if not KEEP_SEARCH_HISTORY:
+		ClearUp(SLIDESTORE, 1);
+		return
+
 	PLog('del_slides:')
-	
+
 	msg1 = L(u"Cache - delete gewaehlt!")
 	msg2 = L(u"Sollen saemtliche Bilder wirklich geloescht werden?")
 	msg3 = L(u"Loeschfrist (Tage) wird zurueckgestellt auf 100")
@@ -721,7 +728,7 @@ def seconds_translate(seconds, days=False):
 # Holt User-Eingabe für Suche ab
 #	s.a. get_query (für Search , ZDF_Search)
 def get_keyboard_input():
-	kb = xbmc.Keyboard('', 'Bitte Suchwort(e) eingeben')
+	kb = xbmc.Keyboard('', ADDON.getLocalizedString(30119))
 	kb.doModal() # Onscreen keyboard
 	if kb.isConfirmed() == False:
 		return ""

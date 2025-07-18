@@ -12,7 +12,9 @@
 		<setting label="30102"  type="text" id="info2" enable="false"/>
 		<setting label="30103"  type="text" id="info3" enable="false"/>
 		<setting label="30104"  type="text" id="info4" enable="false"/>
-
+		<setting label="30117" type="select"
+		values="1 / Safe|2 / Moderate|3 / Restricted" default="1 / Safe" id="safe_search"/>
+		<setting id="keep_search_history" type="bool" label="30118" default="true" />
 	</category>
 	
 	<category label="30200">

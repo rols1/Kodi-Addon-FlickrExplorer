@@ -92,13 +92,16 @@ msgctxt "#30116"
 msgid "max. width of pictures"
 msgstr "max. Bildgröße"
 
+msgctxt "#30117"
+#: "Preferences: Safe search"
+msgid "Sichere Suche"
+msgstr "Sichere Suche"
 
+msgctxt "#30118"
+#: "Preferences: Keep search history"
+msgid "Suchverlauf behalten"
+msgstr "Suchverlauf behalten"
 
-
-
-
-
-
-
-
-
+msgctxt "#30119"
+msgid "Bitte Suchwort(e) eingeben"
+msgstr "Bitte Suchwort(e) eingeben"
