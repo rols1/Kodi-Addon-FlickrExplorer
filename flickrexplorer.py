@@ -35,6 +35,7 @@ from threading import Thread	# thread_getpic
 import shutil					# thread_getpic
 
 import json				# json -> Textstrings
+import xbmcaddon
 import re				# u.a. Reguläre Ausdrücke
 import math				# für math.ceil (aufrunden)
 
@@ -123,6 +124,7 @@ PluginAbsPath 	= os.path.dirname(os.path.abspath(__file__))			# abs. Pfad für D
 RESOURCES_PATH	=  os.path.join("%s", 'resources') % PluginAbsPath
 ADDON_ID      	= 'plugin.image.flickrexplorer'
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
+KEEP_SEARCH_HISTORY = SETTINGS.getSettingBool('keep_search_history')
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
 SETTINGS_LOC  	= SETTINGS.getAddonInfo('profile')
 ADDON_PATH    	= SETTINGS.getAddonInfo('path')
@@ -163,7 +165,7 @@ ARDStartCacheTime = 300						# 5 Min.
  
 # Dict: Simpler Ersatz für Dict-Modul aus Plex-Framework
 days = SETTINGS.getSetting('DICT_store_days')
-if days == 'delete':						# slides-Ordner löschen 
+if days == 'delete' or not KEEP_SEARCH_HISTORY:						# slides-Ordner löschen
 	del_slides(SLIDESTORE)
 	SETTINGS.setSetting('DICT_store_days','100')
 	xbmc.sleep(100)
@@ -952,7 +954,8 @@ def Search(query='', user_id='', pagenr=1, title=''):
 			query_recent.append(query_org)
 			query_recent = "\n".join(query_recent)
 			query_recent = py2_encode(query_recent)
-			RSave(query_file, query_recent)								# withcodec: code-error	
+			if KEEP_SEARCH_HISTORY:
+				RSave(query_file, query_recent)								# withcodec: code-error
 
 	Search_Work(query=py2_encode(query), user_id=user_id)
 			 
@@ -1564,6 +1567,13 @@ def BuildPath(method, query_flickr, user_id, pagenr, photoset_id=''):
 			query_flickr = quote(query_flickr)
 			PATH =  PATH + "&text=%s&page=%s&extras=%s&format=rest" % (query_flickr, pagenr, extras)
 			
+	val2 = SETTINGS.getSetting('safe_search')  # e.g. "1 / Safe" or "" if untouched
+	if val2:
+		# split into ["1 ", " Safe"], strip the whitespace
+		code, label = [x.strip() for x in val2.split('/', 1)]
+		# Flickr wants the numeric code 1,2 or 3
+		PATH = "%s&safe_search=%s" % (PATH, code)
+
 	if SETTINGS.getSetting('sort_order'):					# Bsp. 1 / date-posted-desc
 		val = SETTINGS.getSetting('sort_order')
 		nr = val.split('/')[0].strip	
