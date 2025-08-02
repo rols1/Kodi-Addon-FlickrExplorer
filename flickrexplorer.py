@@ -38,27 +38,18 @@ import json				# json -> Textstrings
 import xbmcaddon
 import re				# u.a. Reguläre Ausdrücke
 import math				# für math.ceil (aufrunden)
+import importlib		# dyn. Laden zur Laufzeit, s. router
 
-import resources.lib.updater 			as updater		
 
 # Addonmodule + Funktionsziele (util_imports.py)
-import resources.lib.util_flickr as util
+import resources.lib.updater as updater		
+from resources.lib.util_flickr import *
 
-PLog=util.PLog; check_DataStores=util.check_DataStores;  make_newDataDir=util. make_newDataDir; 
-Dict=util.Dict; name=util.name; ClearUp=util.ClearUp; 
-UtfToStr=util.UtfToStr; addDir=util.addDir; R=util.R; RLoad=util.RLoad; RSave=util.RSave; 
-repl_json_chars=util.repl_json_chars; mystrip=util.mystrip; DirectoryNavigator=util.DirectoryNavigator; 
-stringextract=util.stringextract; blockextract=util.blockextract; 
-cleanhtml=util.cleanhtml; decode_url=util.decode_url; unescape=util.unescape; 
-transl_json=util.transl_json; repl_json_chars=util.repl_json_chars; seconds_translate=util.seconds_translate; 
-get_keyboard_input=util.get_keyboard_input; L=util.L; RequestUrl=util.RequestUrl; PlayVideo=util.PlayVideo;
-make_filenames=util.make_filenames; CheckStorage=util.CheckStorage; MyDialog=util.MyDialog;
-del_slides=util.del_slides;
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
 VERSION =  '0.7.7'	
-VDATE = '18.07.2025'
+VDATE = '25.07.2025'
 
 # 
 #	
@@ -124,7 +115,7 @@ PluginAbsPath 	= os.path.dirname(os.path.abspath(__file__))			# abs. Pfad für D
 RESOURCES_PATH	=  os.path.join("%s", 'resources') % PluginAbsPath
 ADDON_ID      	= 'plugin.image.flickrexplorer'
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
-KEEP_SEARCH_HISTORY = SETTINGS.getSettingBool('keep_search_history')
+	
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
 SETTINGS_LOC  	= SETTINGS.getAddonInfo('profile')
 ADDON_PATH    	= SETTINGS.getAddonInfo('path')
@@ -141,9 +132,8 @@ PLog("ADDON_DATA: " + ADDON_DATA)
 DICTSTORE 		= os.path.join("%s/Dict") % ADDON_DATA
 SLIDESTORE 		= os.path.join("%s/slides") % ADDON_DATA
 PLog(DICTSTORE); 
-
-check 			= check_DataStores()	# Check /Initialisierung / Migration 
-PLog('check: ' + str(check))
+check 			= check_DataStores()	# Check /Initialisierung / Migration
+check_FotoStore(SLIDESTORE)				# Check Bildspeicher + ClearUp
 										
 try:	# 28.11.2019 exceptions.IOError möglich, Bsp. iOS ARM (Thumb) 32-bit
 	from platform import system, architecture, machine, release, version	# Debug
@@ -157,24 +147,8 @@ try:	# 28.11.2019 exceptions.IOError möglich, Bsp. iOS ARM (Thumb) 32-bit
 	OS_DETECT += ' | host: [%s][%s][%s]' %(OS_MACHINE, OS_RELEASE, OS_VERSION)
 except:
 	OS_DETECT =''
-	
 KODI_VERSION = xbmc.getInfoLabel('System.BuildVersion')
-	
-PLog('Addon: ClearUp')
-ARDStartCacheTime = 300						# 5 Min.	
- 
-# Dict: Simpler Ersatz für Dict-Modul aus Plex-Framework
-days = SETTINGS.getSetting('DICT_store_days')
-if days == 'delete' or not KEEP_SEARCH_HISTORY:						# slides-Ordner löschen
-	del_slides(SLIDESTORE)
-	SETTINGS.setSetting('DICT_store_days','100')
-	xbmc.sleep(100)
-	days = 100
-else:
-	days = int(days)
-Dict('ClearUp', days)				# Dict bereinigen 
-	
-																		
+														
 ####################################################################################################		
 # Auswahl Sprachdatei / Browser-locale-setting	
 # Locale-Probleme unter Plex s. Plex-Version
@@ -282,32 +256,98 @@ def Main():
 			
 	if call_update == False:							# Update-Button "Suche" zeigen	
 		title = 'Addon-Update | akt. Version: ' + VERSION + ' vom ' + VDATE	
-		summary='Suche nach neuen Updates starten'
-		tagline='Bezugsquelle: ' + repo_url			
+		summary = L('Suche nach neuen Updates starten')
+		t = L('Bezugsquelle')
+		tagline = "%s: %s" % (t, repo_url)
+					
 		fparams="&fparams={'title': 'Addon-Update'}"
 		addDir(li=li, label=title, action="dirList", dirID="SearchUpdate", fanart=R(FANART), 
 			thumb=R(ICON_MAIN_UPDATER), fparams=fparams, summary=summary, tagline=tagline)
 	
-	# Info-Button
-	summary = L('Stoerungsmeldungen an Forum oder rols1@gmx.de')
-	tagline = u'für weitere Infos (changelog.txt) klicken'
-	path = os.path.join(ADDON_PATH, "changelog.txt") 
-	title = u"Änderungsliste (changelog.txt)"
-	path=py2_encode(path); title=py2_encode(title); 
-	fparams="&fparams={'path': '%s', 'title': '%s'}" % (quote(path), quote(title))
-	addDir(li=li, label='Info', action="dirList", dirID="ShowText", fanart=R(FANART), thumb=R(ICON_INFO), 
-		fparams=fparams, summary=summary, tagline=tagline)
-	
+	# Info
+	title = "Info"
+	title=py2_encode(title); 
+	tag = L("Für weitere Infos klicken")
+	fparams="&fparams={}"
+	addDir(li=li, label=title, action="dirList", dirID="Info_buttons", fanart=R(FANART), thumb=R(ICON_INFO), 
+		fparams=fparams, tagline=tag)
 
 	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 	
 #----------------------------------------------------------------
-def ShowText(path, title):
+def Info_buttons():
+	PLog('Info_buttons:')
+	
+	li = xbmcgui.ListItem()
+	li = home(li, user_id='')				# Home-Button
+	
+	# Info-Button 1
+	tag = L('Störungsmeldungen an Forum, Github oder rols1@gmx.de')
+	title = "Info Changelog"
+	title=py2_encode(title); 
+	fparams="&fparams={'title': '%s', 'mode': 'log'}" % quote(title)
+	addDir(li=li, label=title, action="dirList", dirID="Info", fanart=R(FANART), thumb=R(ICON_INFO), 
+		fparams=fparams, tagline=tag)
+	
+	# Info-Button 2
+	tag = L("Für weitere Infos klicken")
+	title = L("Info Fotospeicher")
+	title=py2_encode(title); 
+	fparams="&fparams={'title': '%s', 'mode': 'storage'}" % quote(title)
+	addDir(li=li, label=title, action="dirList", dirID="Info", fanart=R(FANART), thumb=R(ICON_INFO), 
+		fparams=fparams, tagline=tag)
+
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+#----------------------------------------------------------------
+def Info(title, mode="log"):
+	PLog('Info: ' + mode)
+
+	if "log" in mode:
+		path = os.path.join(ADDON_PATH, "changelog.txt") 		
+		ShowText(path, title)
+		return
+
+	if "storage" in mode:
+		directory=SLIDESTORE
+		subdirs, dirfiles, total_size, total_dirs = getStorageInfo(directory)
+		if len(subdirs) == 0:
+			icon = R(ICON_FLICKR)
+			msg1 = L(u'Info Fotospeicher')
+			msg2 = L(u"Fotospeicher ist leer")
+			xbmcgui.Dialog().notification(msg1,msg2,icon,3000)
+			return
+			
+		subdirs=py2_encode(subdirs)			# PY2
+		dirs = subdirs.strip().splitlines()
+		dirs.sort(key=str.lower)	
+		dirs = "\n".join(dirs)
+
+
+		path=""; stamp="?"
+		stamp = Dict("load", "ClearUp")		# Stempel letzte Bereinigung 
+		if stamp:
+			lb = L("bereinigt")
+			stamp = stamp[:16]		
+		l = L("Ordner")
+		title = "%s | %s: %d | %s | %s: %s" % (title, l, total_dirs, humanbytes(total_size), lb, stamp)
+		ShowText(path, title, dirs)
+	return
+
+#----------------------------------------------------------------
+# path: path to Textfile (changelog.txt), 
+# page: Texststring (Context_Info)
+def ShowText(path, title, page=""):
 	PLog('ShowText:'); 
-	page = RLoad(path, abs_path=True)
+	if path:
+		page = RLoad(path, abs_path=True)
 	page = page.replace('\t', ' ')		# ersetze Tab's durch Blanks
-	dialog = xbmcgui.Dialog()
-	dialog.textviewer(title, page)
+	
+	if PYTHON3:
+		xbmcgui.Dialog().textviewer(title, page, usemono=True)
+	else:
+		xbmcgui.Dialog().textviewer(title, page)	
+	
 	return
 #----------------------------------------------------------------
 
@@ -426,12 +466,11 @@ def MyMenu(username='',user_id=''):
 #	den Mengen umgeht (seitenweise, einzeln, ohne). Z.B. in galleries.getList nur 1 Seite - Mehr-Sprünge daher
 #	mit max_count=100.
 #	Flickr-Ausgabe im xml-Format.
-def MyGalleries(title, user_id, offset=0):
+def MyGalleries(title, user_id, offset=0, fromcontext=""):
 	PLog('MyGalleries:'); PLog('offset: ' + str(offset))
 	offset = int(offset)
 	title_org = title
 	max_count = 100									# Begrenzung fest wie Flickr Default
-	
 
 	path = BuildPath(method='flickr.galleries.getList', query_flickr='', user_id=user_id, pagenr=1)
 				
@@ -442,12 +481,14 @@ def MyGalleries(title, user_id, offset=0):
 		return 
 	PLog(page[:100])
 		
-	cnt = stringextract('total="', '"', page)					# im  Header
+	cnt = stringextract('total="', '"', page)		# im  Header
 	pages = stringextract('pages="', '"', page)
 	PLog('Galleries: %s, Seiten: %s' % (cnt, pages))
 	if cnt == '0' or pages == '':
 		msg1 = L('Keine Gallerien gefunden')
 		MyDialog(msg1, '', '')
+		if fromcontext:								# 2 x Back im Normalmodus -> Addoncrash 		
+			xbmc.executebuiltin('Action(Back)')
 		return 
 		
 	li = xbmcgui.ListItem()
@@ -460,6 +501,8 @@ def MyGalleries(title, user_id, offset=0):
 	i=0 + offset
 	loop_i = 0		# Schleifenzähler
 	# PLog(records[i])
+	img_src = R("icon-my.png")
+	
 	for r in records:
 		title 		= stringextract('<title>', '</title>', records[i])
 		title		= unescape(title)
@@ -467,7 +510,7 @@ def MyGalleries(title, user_id, offset=0):
 		username 	= stringextract('username="', '"', records[i])
 		count_photos = stringextract('count_photos="', '"', records[i])
 		summ = '%s: %s %s' % (username, count_photos, L('Fotos'))
-		img_src = R(ICON_FLICKR)
+		
 		i=i+1; loop_i=loop_i+1
 		if i >= pagemax:
 			break
@@ -481,7 +524,7 @@ def MyGalleries(title, user_id, offset=0):
 		PLog(i); PLog(url);PLog(title);PLog(img_src); PLog(gallery_id);
 		title=py2_encode(title);
 		fparams="&fparams={'title': '%s', 'gallery_id': '%s', 'user_id': '%s'}" % (quote(title), gallery_id, user_id)
-		addDir(li=li, label=title, action="dirList", dirID="Gallery_single", fanart=R(img_src), thumb=R(img_src), 
+		addDir(li=li, label=title, action="dirList", dirID="Gallery_single", fanart=img_src, thumb=img_src, 
 			fparams=fparams, summary=summ)
 				
 	PLog(offset); PLog(pagemax); 					# pagemax hier Anzahl Galleries
@@ -514,6 +557,7 @@ def MyGalleries(title, user_id, offset=0):
 #
 def MyAlbums(title, user_id, pagenr):
 	PLog('MyAlbums:'); PLog('page: ' + str(pagenr))
+	PLog(title); PLog(user_id);
 	title_org = title							# title_org: Username
 	
 	path = BuildPath(method='flickr.photosets.getList', query_flickr='', user_id=user_id, pagenr=pagenr)
@@ -522,6 +566,11 @@ def MyAlbums(title, user_id, pagenr):
 	if page == '': 
 		msg1 = msg
 		MyDialog(msg1, '', '')
+		return 		
+	if 'msg="User not found"' in page: 
+		msg1 = L("User nicht gefunden")
+		msg1 = "%s:" % msg1
+		MyDialog(msg1, user_id, '')
 		return 		
 	PLog(page[:100])
 		
@@ -653,20 +702,26 @@ def MyAlbumsSingle(title, photoset_id, user_id, pagenr=1):
 #  	FlickrPeople:  gesucht wird auf der Webseite mit dem Suchbegriff fuer Menue Flickr Nutzer.
 #	Flickr liefert bei Fehlschlag den angemeldeten Nutzer zurück
 # 	Exaktheit der Websuche nicht beeinflussbar.	
+# 	21.07.2025 Aufruf durch Context_Info mit username + nsid ergänzt
 #
-def FlickrPeople(pagenr=1):
+def FlickrPeople(pagenr=1, username="", nsid=""):
 	PLog('FlickrPeople: ' + str(SETTINGS.getSetting('FlickrPeople')))
 	PLog('pagenr: ' + str(pagenr))
 	pagenr = int(pagenr)
+	nsid_org=nsid
 	
-	if SETTINGS.getSetting('FlickrPeople'):
-		username = SETTINGS.getSetting('FlickrPeople').replace(' ', '%20')		# Leerz. -> url-konform 
-		path = 'https://www.flickr.com/search/people/?username=%s&page=%s' % (username, pagenr)
-	else:
-		msg1 = L('Einstellungen: Suchbegriff für Flickr Nutzer fehlt')
-		MyDialog(msg1, '', '')
-		return 			
-	
+	if username:									#  von Context_Info Step2 
+		username = username.replace(' ', '%20')
+	else:		
+		if SETTINGS.getSetting('FlickrPeople'):
+			username = SETTINGS.getSetting('FlickrPeople').replace(' ', '%20')		# Leerz. -> url-konform		
+			path = 'https://www.flickr.com/search/people/?username=%s&page=%s' % (username, pagenr)
+		else:
+			msg1 = L('Einstellungen: Suchbegriff für Flickr Nutzer fehlt')
+			MyDialog(msg1, '', '')
+			return 
+			
+	path = 'https://www.flickr.com/search/people/?username=%s&page=%s' % (username, pagenr)	
 	title2 = 'Flickr People ' + L('Seite') + ' ' +  str(pagenr)
 	li = xbmcgui.ListItem()
 	li = home(li, user_id='')				# Home-Button
@@ -700,12 +755,18 @@ def FlickrPeople(pagenr=1):
 		# PLog(rec)
 		nsid =  stringextract('id":"', '"', rec) 
 		if '@N' not in nsid:
-				continue			
+			PLog("nsid_skip_missing_@N")
+			continue
+		if 	nsid_org:								# Abgleich mit Param nsid z.B. von Context_Info 
+			if 	nsid_org not in nsid:
+				PLog("nsid_skip_not_in_nsid_org")
+				continue	
 		username =  stringextract('username":"', '"', rec) 
 		username=unescape(username);  username=unquote(username)
 		realname =  stringextract('realname":"', '"', rec) 
 		alias =  stringextract('pathAlias":"', '"', rec) 		# kann fehlen
 		alias = unescape(alias);  alias = unquote(alias)
+		hometown =  stringextract('hometown":"', '"', rec) 
 		
 		if alias == '':
 			alias = username
@@ -715,22 +776,21 @@ def FlickrPeople(pagenr=1):
 		if followersCount == '':
 			followersCount  = '0'
 		photosCount =  stringextract('photosCount":', ',', rec) 
-		if photosCount == '':									# # photosCount kann fehlen
+		if photosCount == '':									# photosCount kann fehlen
 			photosCount  = '0'
 		iconserver =  stringextract('iconserver":"', '"', rec) 
-		title = "%s | %s" % (username, realname)
+		title = username
+		if realname:
+			title = "%s | %s" % (username, realname)
 		PLog(title)
 		title=unescape(title); title=unquote(title)
 		summ = "%s: %s" % (L('Fotos'), photosCount)
-		summ = summ + " | %s: %s | Alias: %s" % (L('Followers'), followersCount, alias)
+		summ = summ + " | %s: %s | Alias: %s | Realname: %s | Home: %s" %\
+			(L('Followers'), followersCount, alias, realname, hometown)
 		
 		PLog('5Satz')
 		PLog("username: %s, nsid: %s"	% (username, nsid)); PLog(title)
-		if realname:
-			label=realname
-		else:
-			label=username
-		label=unescape(label); label=unquote(label)
+		label = title
 		
 		username=py2_encode(username);
 		fparams="&fparams={'username': '%s', 'user_id': '%s'}" % (quote(username), nsid)
@@ -739,7 +799,8 @@ def FlickrPeople(pagenr=1):
 		i = i + 1
 			
 	if i == 0: 
-		msg = SETTINGS.getSetting('FlickrPeople') + ': ' + L('kein Treffer')
+		# msg = SETTINGS.getSetting('FlickrPeople') + ': ' + L('kein Treffer')
+		msg = username + ': ' + L('kein Treffer')
 		PLog(msg)
 		msg1=msg	
 		MyDialog(msg1, '', '')
@@ -944,6 +1005,7 @@ def Search(query='', user_id='', pagenr=1, title=''):
 	
 	# wg. fehlender Rückgabewerte speichern wir ohne Rücksicht
 	#	auf das Suchergebnis: 
+	PLog('save_search_terms: ' + SETTINGS.getSetting('save_search_terms'))
 	if query:															# leere Eingabe vermeiden
 		query_recent= RLoad(query_file, abs_path=True)					# Sucheingabe speichern
 		query_recent= query_recent.strip().splitlines()
@@ -954,7 +1016,7 @@ def Search(query='', user_id='', pagenr=1, title=''):
 			query_recent.append(query_org)
 			query_recent = "\n".join(query_recent)
 			query_recent = py2_encode(query_recent)
-			if KEEP_SEARCH_HISTORY:
+			if SETTINGS.getSetting('save_search_terms') == "true":
 				RSave(query_file, query_recent)								# withcodec: code-error
 
 	Search_Work(query=py2_encode(query), user_id=user_id)
@@ -1013,6 +1075,8 @@ def Search_Work(query, user_id, SEARCHPATH=''):
 #	"Originalbild" gewählt ist. Bei kleineren Größen rechnet Flickr die weggefallenen
 #	Seiten nicht heraus - dann zeigt das Addon wieder die erste Seite, obwohl laut
 #	noch weitere Seiten existieren. 
+# 27.07.2025 check_Limit von ShowPhotoObject hierher verlagert
+#
 def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1,  photototal=1):
 	PLog('BuildPages:')
 	PLog('SEARCHPATH: %s' % (SEARCHPATH))
@@ -1037,6 +1101,7 @@ def BuildPages(title, searchname, SEARCHPATH, pagemax=1, perpage=1, pagenr=1,  p
 		pagenr 		= 1											# Start mit Seite 
 		
 	PLog('Flickr: pagemax %s, total %s, perpage %s' % (pagemax, photototal, perpage))
+	check_Limit(SLIDESTORE, SETTINGS.getSetting('warn_store_size'))	# Limit checken, Warnung	
 	
 	pagenr = int(pagenr); pagemax = int(pagemax); 			
 	maxPageContent = 500										# Maximum Flickr	
@@ -1239,13 +1304,13 @@ def SeparateVideos(title, path, title_org):
 #		Ein abschließender Button ruft die Slideshow auf (Kodi-
 #		Player).
 #
-# Überwachung Speicherplatz: 	CheckStorage - s.u.
+# Überwachung Speicherplatz: 	check_Limit bereits in BuildPages
 # eindeutiger Verz.-Namen: 		path2dirname - s.u.
 #
 # Hinw.: bei wiederholten Aufrufen einer Quelle sammeln sich im Slide-Verz.
 #	mehr Bilder als bei Flickr (insbes. Photostream wird häufig aktualisiert) -
 #	es erfolgt kein Abgleich durch das Addon. Alle Bilder in einem Verz.
-#	verbleiben bis zum Löschen durch CheckStorage oder CleanUp.
+#	verbleiben bis zum Löschen durch check_FotoStore.
 #
 def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	PLog('ShowPhotoObject:')
@@ -1264,13 +1329,11 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	records = blockextract('<photo id', '', page)	# ShowPhotoObject:  nur '<photo id'-Blöcke zulässig 	
 	PLog('records: %s' % str(len(records)))
 	extras_list = Dict('load', 'extras_list')
-	try:									# Back in Browser: ValueError: list.remove(x)
-		extras_list.remove('media')			# 1. Eintrag media enthält keinen URL
+	try:											# Back in Browser: ValueError: list.remove(x)
+		extras_list.remove('media')					# 1. Eintrag media enthält keinen URL
 	except:
 		pass
-	PLog("extras_list: " + str(extras_list));  	# Größen s. BuildExtras
-		
-	CheckStorage(SLIDESTORE, SETTINGS.getSetting('max_slide_store'))	# Limit checken
+	PLog("extras_list: " + str(extras_list));  		# Größen s. BuildExtras
 		
 	title = path2dirname(title, path, title_org)	# Verz.-Namen erzeugen
 	fname = make_filenames(py2_decode(title))		# os-konforme Behandl. 
@@ -1292,15 +1355,15 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 	for s in records:
 		if 'media="video"' in s:
 			continue								
-		pid =  stringextract('photo id=\"', '\"', s) 	# photo id auch bei Videos
+		pid =  stringextract('photo id=\"', '\"', s) # photo id auch bei Videos
 		owner =  stringextract('owner=\"', '\"', s) 	
 		secret =  stringextract('secret=\"', '\"', s) 
 		serverid =  stringextract('server=\"', '\"', s) 
 		farmid =  stringextract('farm=\"', '\"', s) 		
-		descr =  stringextract('title=\"', '\"', s)		# Zusatz zu Bild 001 
+		descr =  stringextract('title=\"', '\"', s)	# Zusatz zu Bild 001 
 		descr = unescape(descr)							
 		
-		if 	username:						# Ersatz owner durch username + realname	
+		if 	username:								# Ersatz owner durch username + realname	
 			owner = username
 			if realname:
 				owner = "%s | %s" % (owner, realname)
@@ -1310,25 +1373,25 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 		# Foto-Auswahl - jeweils das größte, je nach Voreinstellung (falls verfügbar):
 		Imagesize = L('Bildgroesse') 
 		Imagesize = py2_decode(Imagesize)
-		if 'url_' in s:							# Favs ohne Url
+		if 'url_' in s:								# Favs ohne Url
 			for i in range (len(extras_list)):			
 				url_extra = extras_list[i]
 				img_src = stringextract('%s=\"' % (url_extra), '\"', s) 
-				suffix = url_extra[-2:] 		# z.B. _o von url_o, zusätzlich height + width ermitteln
+				suffix = url_extra[-2:] 			# z.B. _o von url_o, zusätzlich height + width ermitteln
 				width = stringextract('width%s=\"' % (suffix), '\"', s)	  	# z.B. width_o
 				height = stringextract('height%s=\"' % (suffix), '\"', s)  	# z.B. height_o
 				# PLog(url_extra); PLog(img_src);PLog(suffix);PLog(width);PLog(height);	# bei Bedarf
-				if len(img_src) > 0:		# falls Format nicht vorhanden, weiter mit den kleineren Formaten
+				if len(img_src) > 0:				# falls Format nicht vorhanden, weiter mit den kleineren Formaten
 					PLog("url_extra: " + url_extra)
 					break
 			summ = owner + ' | ' + '%s: %s x %s' % (Imagesize, width, height)
-		else:									# Favs-Url wie thumb_src ohne extra (m)
+		else:										# Favs-Url wie thumb_src ohne extra (m)
 			img_src = 'https://farm%s.staticflickr.com/%s/%s_%s.jpg' % (farmid, serverid, pid, secret)
-			summ = owner 						# falls ohne Größenangabe
+			summ = owner 							# falls ohne Größenangabe
 		
 		# für Originalbilder in Alben zusätzl. getSizes-Call erforderlich:	
 		PLog('Mark0')
-		if "photosets.getPhotos" in path:		# Output ohne Url-Liste für Größen
+		if "photosets.getPhotos" in path:			# Output ohne Url-Liste für Größen
 			if SETTINGS.getSetting('max_width') == "Originalbild":
 				PLog('try_info_call:')
 				API_KEY = GetKey()	
@@ -1354,24 +1417,25 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 						img_src = source
 						summ = owner + ' | ' + '%s: %s x %s' % (Imagesize, width, height)							
 			
-		PLog(descr); PLog(img_src); # PLog(thumb_src);	PLog(pid);PLog(owner);	# bei Bedarf
+		PLog(descr); PLog(img_src); PLog(thumb_src); PLog(pid); PLog(owner);
 		
-		if img_src == '':									# Sicherung			
+		if img_src == '':										# Sicherung			
 			msg1 = 'Problem in Bildgalerie: Bild nicht gefunden'
 			PLog(msg1)
 	
 		if img_src:
 			#  Kodi braucht Endung für SildeShow; akzeptiert auch Endungen, die 
 			#	nicht zum Imageformat passen
-			pic_name 	= 'Bild_%04d_%s.jpg' % (image+1, pid)		# Name: Bild + Nr + pid
+			pic_name 	= 'Bild_%04d_%s.jpg' % (image+1, pid)	# Name: Bild + Nr + pid
 			local_path 	= "%s/%s" % (fpath, pic_name)
 			PLog("local_path: " + local_path)
-			title = "Bild %03d | %s" % (image+1, descr)
+			pic = L("Bild")
+			title = "%s %03d | %s" % (pic, image+1, descr)
 			PLog("Bildtitel: " + title)
 			
-			thumb = img_src									# Default: Bild = Url 
+			thumb = img_src										# Default: Bild = Url 
 			local_path = os.path.abspath(local_path)
-			if os.path.isfile(local_path) == False:			# nicht lokal vorhanden - get & store
+			if os.path.isfile(local_path) == False:				# nicht lokal vorhanden - get & store
 				# 03.10.2019 urlretrieve in Schleife bremst sehr stark - daher Ausführung im Hintergrund
 				#try:
 					#urllib.urlretrieve(img_src, local_path)
@@ -1381,8 +1445,8 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 				#except Exception as exception:
 				#	PLog(str(exception))	
 			else:											
-				thumb = local_path							# lokal vorhanden - load
-				thumb_src = thumb							# Verzicht auf thumbnail von Farm			
+				thumb = local_path								# lokal vorhanden - load
+				thumb_src = thumb								# Verzicht auf thumbnail von Farm			
 			
 			tagline = unescape(title_org); tagline = cleanhtml(tagline)
 			summ = unescape(summ)
@@ -1402,8 +1466,33 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 				li.setLabel(title)			
 				# 11.04.2020 setThumbnailImage ersetzt durch setArt
 				li.setArt({'thumb':thumb_src, 'icon':thumb_src})		# lokal oder Farm
-				
 				li.setInfo(type='image', infoLabels={'Title': title}) 	# plot bei image nicht möglich
+				
+				#------------------------------------------------------	# Kontext-Menüs Start
+
+				labels = ["Zeige Beschreibung", "Zeige Photostream des Autors",
+				"Zeige Alben des Autors", "Zeige Galerien des Autors"]
+				title=py2_encode(title); owner=py2_encode(owner)		# PY2
+				thumb_src=py2_encode(thumb_src); pid=py2_encode(pid)
+				commands = []
+				title = unescape(title)
+
+				for label in labels:
+					mtitle_org = label
+					mtitle = L(label)									# title, mtitle: Bild-, Kontextmenü-Titel
+					title=py2_encode(title)
+					fp = {"title": quote(title), "thumb": quote(thumb_src),\
+						 "owner": owner, "pid": pid, "mtitle": mtitle_org}	# mtitle_org steuert Verteilung
+					fparams_ShowMore = "&fparams={0}".format(fp)
+					PLog("mtitle: %s | fparams_ShowMore: %s" % (mtitle,fparams_ShowMore))
+					fparams_ShowMore=quote(fparams_ShowMore)				# quoting für router erf.
+					MY_SCRIPT=xbmc.translatePath('special://home/addons/%s/flickrexplorer.py' % (ADDON_ID))
+					commands.append((mtitle, 'RunScript(%s, %s, ?action=dirList&dirID=resources.lib.tools.Context1%s)' \
+						% (MY_SCRIPT, HANDLE, fparams_ShowMore)))
+					
+				li.addContextMenuItems(commands)
+				#------------------------------------------------------	# Kontext-Menüs Ende
+				
 				xbmcplugin.addDirectoryItem(
 					handle=HANDLE,
 					url=thumb,								# lokal oder Farm
@@ -1418,7 +1507,7 @@ def ShowPhotoObject(title,path,user_id,username,realname,title_org):
 		addDir(li=li, label="SlideShow", action="dirList", dirID="SlideShow", 
 			fanart=R('icon-stream.png'), thumb=R('icon-stream.png'), fparams=fparams)
 
-	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=True)  # ohne Cache, um Neuladen zu verhindern
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=True)  	# ohne Cache, um Neuladen zu verhindern
 
 #----------------------------------------------------------------
 def thread_getpic(img_src, local_path):
@@ -1431,8 +1520,64 @@ def thread_getpic(img_src, local_path):
 		PLog("thread_getpic:" + str(exception))
 
 	return
+	
 #----------------------------------------------------------------
-# Aufruf  ShowPhotoObject
+# Verarbeitung Kontexmenü 
+# Aufruf: ShowPhotoObject mit Dict("Context1") aus tools.Context1
+#	Dict_ID_api: Zwischenspeicher api-Ergebnis
+#
+def Context_Info(mtitle):
+	PLog("Context_Info: " + mtitle)
+	
+	li = xbmcgui.ListItem()
+	params = Dict("load", "Context_Params")
+	pic_title, thumb, owner, pid = params.split("###")			# Params Kontex-Menü
+	API_KEY = GetKey()
+	p1 = "https://www.flickr.com/services/rest/?method=flickr.photos.getInfo&api_key=%s" % API_KEY
+	p2 = "&photo_id=%s&format=rest" % (pid)
+	info_url = p1 + p2
+	page, msg = RequestUrl(CallerName='Context1', url=info_url)	# flickr-xml-Inhalt 	
+	PLog(page[:80])
+	if page == "":
+		icon = R("icon-info.png")
+		msg1 = L("Kontext nicht gefunden")
+		msg2 = title
+		PLog("%s %s" % (msg1, msg2))
+		xbmcgui.Dialog().notification(msg1,msg2,icon,2000,sound=True)
+		return
+	
+	username = stringextract('username="', '"', page)
+	nsid = stringextract('nsid="', '"', page)
+	descr = stringextract("<description>", "</description>", page)
+	realname = stringextract('realname="', '"', page)
+	upload = stringextract('taken="', '"', page)
+	upload = upload[:10]									# amerik. Format orig.
+	descr = unescape(descr)
+	PLog("username: %s | nsid: %s" % (username,nsid ))
+		
+	if "Beschreibung" in mtitle:								# <- Kontext-Menü Beschreibung	
+		descr = "User: %s\nRealname: %s\nUpload: %s\n\n%s" % (username, realname, upload, descr)
+		ShowText(path="", title=pic_title, page=descr)			# PY2: Backmenü -> erneut 1 x ShowText, Fix n.m.
+		xbmc.executebuiltin('Action(Back)')		
+		
+	if "Photostream" in mtitle:									# <- Kontext-Menü Photostream
+		title='%s: Photostream'	% username
+		query = '&Photostream&'
+		Search_Work(query, user_id=nsid)	
+										
+	if "Alben" in mtitle:										# <- Kontext-Menü Alben	
+		title='%s: Albums'	% username
+		MyAlbums(title, user_id=nsid, pagenr="1")									
+		
+	if "Galerien" in mtitle:									# <- Kontext-Menü Galerien	
+		title='%s: Faves'	% username
+		query = '&Faves&'
+		MyGalleries(query, user_id=nsid, fromcontext="true")								
+				
+	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=True)
+
+#----------------------------------------------------------------
+# Aufruf:  ShowPhotoObject
 #	erzeugt eindeutigen Verz.-Namen aus title_org, Titel + Pfad, Bsp.:
 # 	  	show_photos_158655533 			Photostream 1-seitig, vorgewählter User
 #		show_photos_72157708806994797	Photostream 1-seitig, anderer User
@@ -1440,7 +1585,6 @@ def thread_getpic(img_src, local_path):
 #		Photostream_show_photos_158655 	Photostream mehrseitig, vorgewählter User
 #		Photostream_show_photos_1		Photostream mehrseitig, Seite mit Video(s),
 #											Aufruf durch SeparateVideos
-
 def path2dirname(title, path, title_org):
 	PLog('path2dirname: ' + path)
 	PLog(title); PLog(title_org); 
@@ -1470,12 +1614,13 @@ def path2dirname(title, path, title_org):
 	PLog(dirname)	
 	
 	return dirname
+
 #---------------------------------------------------------------- 
-#  Darstellung der in SLIDESTORE gespeicherten Bilder.
+# Darstellung der in SLIDESTORE gespeicherten Bilder.
 #		single=None -> Einzelbild
 #		single=True -> SlideShow
-#
-#  ClearUp in SLIDESTORE s. Modulkopf
+# Überwachung / Bereinigung Speicherplatz:
+#	check_Limit / check_FotoStore bzw. del_slides
 #  
 def SlideShow(path, single=None):
 	PLog('SlideShow: ' + path)
@@ -1485,6 +1630,7 @@ def SlideShow(path, single=None):
 	else:
 		PLog(local_path)
 		return xbmc.executebuiltin('SlideShow(%s, %s)' % (local_path, 'notrandom'))
+
 #---------------------------------------------------------------- 
 # Rückgabe path: xml-Format
 def ShowVideos(title,path,user_id,username,realname):
@@ -1715,7 +1861,7 @@ def SearchUpdate(title):
 	xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 	
 ####################################################################################################
-#	Hilfsfunktonen - für Kodiversion augelagert in Modul util_flickr.py
+#	Hilfsfunktionen - für Kodiversion augelagert in Modul util_flickr.py
 #----------------------------------------------------------------  
 
 def router(paramstring):
@@ -1724,7 +1870,7 @@ def router(paramstring):
 	paramstring = unquote_plus(paramstring)
 	PLog(' router_params1: ' + paramstring)
 	PLog(type(paramstring));
-		
+	
 	if paramstring:	
 		params = dict(parse_qs(paramstring[1:]))
 		PLog(' router_params_dict: ' + str(params))
@@ -1753,20 +1899,39 @@ def router(paramstring):
 				PLog(' router dest_modul: ' + str(dest_modul))
 				PLog(' router newfunc: ' + str(newfunc))
 				try:
-					func = getattr(sys.modules[dest_modul], newfunc)
+					dest_modul = importlib.import_module(dest_modul )	# Modul laden, Params -> sys.argv
 				except Exception as exception:
-					PLog(str(exception))
+					PLog("func_error_modul: " + str(exception))
+
+				PLog('loaded: ' + str(dest_modul))
+				#PLog(' router_params_dict: ' + str(params))			# Debug Modul-params
+				
+				try:
+					# func = getattr(sys.modules[dest_modul], newfunc)  # falls beim Start geladen
+					func = getattr(dest_modul, newfunc)					# geladen via importlib
+				except Exception as exception:
+					PLog("func_error_lib: " + str(exception))
 					func = ''
 				if func == '':						# Modul nicht geladen - sollte nicht
 					li = xbmcgui.ListItem()			# 	vorkommen - s. Addon-Start
-					msg1 = "Modul %s ist nicht geladen" % dest_modul
-					msg2 = "Ursache unbekannt."
-					PLog(msg1)
-					MyDialog(msg1, msg2, '')
+					msg1 = L("Modul fehlt oder kann nicht geladen werden")
+					m = L("oder")
+					msg2 = L("Funktion wurde nicht gefunden")
+					msg1 = "%s: [B]%s[/B] %s" % (msg1, dest_modul, m)
+					msg2 = "%s: [B]%s[/B]" % (msg2, newfunc)
+					PLog(msg1); PLog(msg2)
+					MyDialog(msg1, msg2)
 					xbmcplugin.endOfDirectory(HANDLE)
 
 			else:
-				func = getattr(sys.modules[__name__], newfunc)	# Funktion im Haupt-PRG OK		
+				try:
+					func = getattr(sys.modules[__name__], newfunc)	# Funktion im Haupt-PRG OK
+				except Exception as exception:
+					PLog("func_error: " + str(exception))
+					msg1 = L("Funktion wurde nicht gefunden")
+					msg1 = "%s: [B]%s[/B]" % (msg1, newfunc)
+					MyDialog(msg1)
+					xbmcplugin.endOfDirectory(HANDLE)
 			
 			PLog(' router func_getattr: ' + str(func))		
 			if func_pars != '""':		# leer, ohne Parameter?	
@@ -1787,7 +1952,9 @@ def router(paramstring):
 					PLog("mydict: " + str(mydict)); PLog(type(mydict))
 				except Exception as exception:
 					PLog('router_exception: {0}'.format(str(exception)))
+					PLog(func_pars)
 					mydict = ''
+					exit()
 				
 				# PLog(' router func_pars: ' + str(type(mydict)))
 				if 'dict' in str(type(mydict)):				# Url-Parameter liegen bereits als dict vor
@@ -1799,7 +1966,7 @@ def router(paramstring):
 			else:
 				func()
 		else:
-			PLog('router action-params: ?')
+			PLog('missing_router_action-params')
 	else:
 		# Plugin-Aufruf ohne Parameter
 		Main()
@@ -1812,8 +1979,8 @@ PLog('HANDLE: ' + str(HANDLE))
 
 PluginAbsPath = os.path.dirname(os.path.abspath(__file__))
 PLog('PluginAbsPath: ' + PluginAbsPath)
-
 PLog('Addon: Start')
+
 if __name__ == '__main__':
 	try:
 		router(sys.argv[2])

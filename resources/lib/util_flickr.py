@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# util_flickr.py
+# util_flickr.py	Teil von Kodi-Addon-FlickrExplorer
 #
-# Stand: 05.04.2023
+# Stand: 25.07.2025
 
 # Python3-Kompatibilität:
 from __future__ import absolute_import
@@ -34,20 +34,21 @@ import glob, shutil, time, ssl, string
 import json				# json -> Textstrings
 import pickle			# persistente Variablen/Objekte
 import re				# u.a. Reguläre Ausdrücke, z.B. in CalculateDuration
+import datetime
 	
 
 # Globals
 NAME		= 'FlickrExplorer'
 KODI_VERSION = xbmc.getInfoLabel('System.BuildVersion')
 
-ADDON = xbmcaddon.Addon()
 ADDON_ID      	= 'plugin.image.flickrexplorer'
+ADDON = xbmcaddon.Addon(id=ADDON_ID)
 SETTINGS 		= xbmcaddon.Addon(id=ADDON_ID)
 ADDON_NAME    	= SETTINGS.getAddonInfo('name')
 SETTINGS_LOC  	= SETTINGS.getAddonInfo('profile')
 ADDON_PATH    	= SETTINGS.getAddonInfo('path')		# Basis-Pfad Addon
 ADDON_VERSION 	= SETTINGS.getAddonInfo('version')
-PLUGIN_URL 		= sys.argv[0]						# plugin://plugin.video.ardundzdf/
+PLUGIN_URL 		= sys.argv[0]						# plugin://plugin.image.flickrexplorer/
 HANDLE			= int(sys.argv[1])
 
 DEBUG			= SETTINGS.getSetting('pref_info_debug')
@@ -62,8 +63,6 @@ ADDON_DATA		= os.path.join("%s", "%s", "%s") % (USERDATA, "addon_data", ADDON_ID
 DICTSTORE 		= os.path.join("%s/Dict") % ADDON_DATA
 
 ICON_FLICKR 		= 'icon-flickr.png'						
-
-KEEP_SEARCH_HISTORY = SETTINGS.getSettingBool('keep_search_history')
 
 ###################################################################################################
 #									Hilfsfunktionen Kodiversion
@@ -225,8 +224,7 @@ def  make_newDataDir(store_Dirs):
 #	ev. ergänzen: OS-Verträglichkeit des Dateinamens
 
 def Dict(mode, Dict_name='', value='', CacheTime=None):
-	PLog('Dict: ' + mode)
-	# PLog('Dict: ' + str(Dict_name))
+	PLog('Dict: %s | %s' % (mode, Dict_name))
 	# PLog('Dict: ' + str(type(value)))
 	dictfile = "%s/%s" % (DICTSTORE, Dict_name)
 	# PLog("dictfile: " + dictfile)
@@ -242,7 +240,7 @@ def Dict(mode, Dict_name='', value='', CacheTime=None):
 		except:	
 			return False
 			
-	if mode == 'ClearUp':			# Files im Dictstore älter als maxdays löschen
+	if mode == 'ClearUp':			# nicht genutzt: Files im Dictstore älter als maxdays löschen
 		maxdays = int(Dict_name)
 		return ClearUp(DICTSTORE, maxdays*86400) # 1 Tag=86400 sec
 			
@@ -277,10 +275,11 @@ def name(**variables):
 	s = [x for x in variables]
 	return s[0]
 #----------------------------------------------------------------
-# Dateien löschen älter als seconds
+# Dateien löschen älter als seconds - nicht rekursiv
 #		directory 	= os.path.join(path)
 #		seconds		= int (1 Tag=86400, 1 Std.=3600)
-# leere Ordner werden entfernt
+# Ältere enthaltene Ordner werden ohne Leertest entfernt 
+#	(nur 1 Ebene!)
 def ClearUp(directory, seconds):	
 	PLog('ClearUp: %s, sec: %s' % (directory, seconds))	
 	PLog('älter als: ' + seconds_translate(seconds, days=True))
@@ -289,11 +288,10 @@ def ClearUp(directory, seconds):
 	try:
 		globFiles = '%s/*' % directory
 		files = glob.glob(globFiles) 
-		PLog("ClearUp: globFiles " + str(len(files)))
-		# PLog(" globFiles: " + str(files))
+		PLog("ClearUp_dir: %s | globFiles %d" % (directory, len(files)))
+		#PLog(" globFiles: " + str(files))	# bei Bedarf
 		for f in files:
-			#PLog(os.stat(f).st_mtime)
-			#PLog(now - seconds)
+			PLog("now-seconds: %d | st_mtime: %d" % (now-seconds, os.stat(f).st_mtime))
 			if os.stat(f).st_mtime < (now - seconds):
 				if os.path.isfile(f):	
 					PLog('entfernte_Datei: ' + f)
@@ -303,71 +301,133 @@ def ClearUp(directory, seconds):
 					PLog('entferntes Verz.: ' + f)
 					shutil.rmtree(f, ignore_errors=True)
 					cnt_dirs = cnt_dirs + 1
-		PLog("ClearUp: entfernte Dateien %s, entfernte Ordner %s" % (str(cnt_files), str(cnt_dirs)))	
-		return True
+		PLog("ClearUp: entfernte Dateien %s, entfernte Ordner %s" % (str(cnt_files), str(cnt_dirs)))
+		# return True
+		return cnt_dirs, cnt_files			# 28.07.2025 
 	except Exception as exception:	
-		PLog(str(exception))
-		return False
+		PLog("ClearUp_error" + str(exception))
+		return 0, 0
 
 #----------------------------------------------------------------
-# slides-Ordner löschen (Setting DICT_store_days=delete)
-# Aufruf Kopf Haupt-PRG, dto Rücksetzung auf 100
-def del_slides(SLIDESTORE):
-	if not KEEP_SEARCH_HISTORY:
-		ClearUp(SLIDESTORE, 1);
+# Aufruf Kopf Haupt-PRG - bei Bedarf auf 1 x stündlich begrenzen
+# Check Fotospeicher (slides) + bereinigt, einschl. leerer Ordner
+# bei 'delete all now' nur mit Dialog
+# bei 'endless' keine Bereinigung, aber Warnung bei Überschreitung
+# Tägl. Warnung siehe CheckStorage (Aufruf: BuildPages)
+def check_FotoStore(SLIDESTORE):
+	PLog('check_FotoStore:')
+	days = SETTINGS.getSetting('foto_store_days')
+	PLog("foto_store_days: %s" % days) 
+	
+	if days == 'delete all now':					# nur mit Dialog
+		del_slides(SLIDESTORE)
 		return
+	if days == 'endless':							# Speicher unbegrenzt
+		PLog("do_nothing")
+		return
+	
+	# -------------------------------				# Bereinigung
+	stamp = Dict("load", "ClearUp", CacheTime=3600)	# 1 Std.
+	if stamp:										# noch nicht ..
+		PLog("stamp_valid_no_ClearUp")
+		return
+	
+	seconds = int(days)*86400
+	globFiles = glob.glob('%s/*' % SLIDESTORE) 
+	cnt_dirs_total=0; cnt_files_total=0				# gelöschte Elemente
+	PLog("start_ClearUp: %d globFiles" % len(globFiles))
+		
+	for item in globFiles:		
+		cnt_dirs, cnt_files = ClearUp(item, seconds)
+		cnt_dirs_total+=cnt_dirs; cnt_files_total+=cnt_files
+		PLog("cnt_files %d | cnt_files_total: %d" % (cnt_files, cnt_files_total))
+		if len(os.listdir(item)) == 0:				# leere Verz. entfernen
+			shutil.rmtree(item) 
+			PLog("dir_removed: " + item)
+			cnt_dirs_total+=1
 
+	O = L(u'Ordner'); F = L(u'Fotos')				# -> stamp, notif.
+	msg2 = "%s: %s | %s: %s" % (O,cnt_dirs_total, F,cnt_files_total)
+	stamp = datetime.datetime.now()
+	stamp =  "%s | %s"  % (stamp, msg2)
+	Dict("store", "ClearUp", stamp)					# Stempel erneuern			
+	
+	# Info nur falls gelöscht:
+	if int(cnt_dirs_total) > 0 or int(cnt_files_total) > 0:		
+		icon = R(ICON_FLICKR)
+		msg1 = L(u'Fotospeicher bereinigen')
+		xbmcgui.Dialog().notification(msg1,msg2,icon,5000)
+
+	return
+
+#----------------------------------------------------------------
+# Inhalt slides-Ordner komplett löschen (Setting foto_store_days=delete)
+# Aufruf Kopf Haupt-PRG, dto Rücksetzung auf 100, nur mit Dialog!
+def del_slides(SLIDESTORE):
 	PLog('del_slides:')
 
-	msg1 = L(u"Cache - delete gewaehlt!")
-	msg2 = L(u"Sollen saemtliche Bilder wirklich geloescht werden?")
-	msg3 = L(u"Loeschfrist (Tage) wird zurueckgestellt auf 100")
-	head = NAME + ": " + L(u"Bilderordner loeschen")
-	ret = MyDialog(msg1=msg1, msg2=msg2, msg3=msg3, ok=False, cancel=L('Abbruch'), yes=L('Bilder LOESCHEN'), heading=head)
+	msg1 = L(u"Alle Fotos löschen gewählt!")
+	msg2 = L(u"Sollen alle Fotos wirklich gelöscht werden?")
+	msg3 = L(u"Löschfrist (Tage) wird zurückgestellt auf 100")
+	head = NAME + ": " + L(u"Fotospeicher löschen")
+	ret = MyDialog(msg1=msg1, msg2=msg2, msg3=msg3, ok=False, cancel=L('Abbruch'), yes=L('Fotos LÖSCHEN'), heading=head)
 	if ret == 1:
-		ClearUp(SLIDESTORE, 1)
+		try:
+			shutil.rmtree(SLIDESTORE, ignore_errors=False)
+			os.mkdir(SLIDESTORE)
+		except Exception as exception:	
+			PLog('del_slides_error: ' + str(exception))		
+			
 		icon = R(ICON_FLICKR)
-		msg1 = L(u'delete Cache')
-		msg2 = L(u'Bilder geloescht')
+		msg1 = L(u'lösche alle Fotos')
+		msg2 = L(u'Fotos gelöscht')
 		xbmcgui.Dialog().notification(msg1,msg2,icon,5000)
-		
+		SETTINGS.setSetting('foto_store_days','100')
+		xbmc.sleep(100)			
 	return
 	
-#----------------------------------------------------------------  
-# Prüft directory auf limit-Überschreitung,
-#	löscht älteste Unterverzeichnisse bzw. 
-#	Einzeldateien, falls kein Unterverz. exisitiert
+#---------------------------------------------------------------- 
+# Aufruf:  BuildPages
+# Prüft directory auf limit-Überschreitung, ab 27.07.2025
+#	nur noch tägliche Warnung, kein Löschen
+# Bereinigung Fotospeicher siehe check_Fotostore
+#
 # limit bisher nur MBytes und GBytes, Berechn. hier
 #	einfach mit 10er- statt 2er-Potenzen.
-def CheckStorage(directory, limit):
-	PLog('CheckStorage: %s, limit: %s' % (directory, limit))
-	
+# 
+def check_Limit(directory, limit, dialog="true"):
+	PLog('check_Limit: %s, limit: %s' % (directory, limit))
+	limit_org=limit
+
 	cnt=1
-	lm, bez = limit.split()			# "100 MBytes", "1 GByte", ..
+	lm, bez = limit.split()								# "100 MBytes", "1 GByte", ..
 	if "MBytes" in bez:
 		limit = int(lm) * 1000000 
 	else:
 		limit = int(lm) * 1000000000 
-	size = 	getFolderSize(directory)			# 1. Belegung ermitteln
+	size = 	getFolderSize(directory)					# 1. Belegung ermitteln
 	PLog('Check 1, limit: %s, size: %s' % (limit, size))
 	
-	if limit > int(size):						# Limit nicht erreicht
-		return
-	
-	dirs = '%s/*' % directory					# 2. Schleife: Löschen / Abgleich
-	while int(size) >= limit:
-		cnt = cnt  + 1
-		dirlist = glob.glob(dirs)
-		dir_alt =  min(dirlist, key=os.path.getctime)
-		PLog(u'lösche Verz.: %s' % dir_alt)
-		shutil.rmtree(dir_alt, ignore_errors=True) # kompl. Verz. löschen
-		size = 	getFolderSize(directory)		
-		PLog('Check %s, limit: %s, size: %s' % (str(cnt),limit, size))
-	return
+	if limit > int(size):								# Limit nicht erreicht
+		return False
+	else:
+		if dialog:
+			stamp = Dict("load", "warn_store", CacheTime=86400)	# 1 Tag
+			PLog("stamp: " +  str(stamp))
+			if not stamp:								# fehlt oder abgelaufen 
+				stamp = datetime.datetime.now()
+				Dict("store", "warn_store", stamp)		# Stempel erneuern	
+				icon = R("icon-info.png")
+				msg1 = L(u'Warnung Fotospeicher')
+				m = L(u'überschritten')
+				msg2 = "[B]%s[/B] %s" % (limit_org, m)
+				xbmcgui.Dialog().notification(msg1,msg2,icon,5000)
+	return True
+
 #--------------------------------- 
 # Helper für CheckStorage, aus: 
 # https://stackoverflow.com/questions/1392413/calculating-a-directorys-size-using-python
-def getFolderSize(folder):
+def getFolderSize(folder, raw=False):
 	total_size = os.path.getsize(folder)
 	for item in os.listdir(folder):
 		itempath = os.path.join(folder, item)
@@ -375,8 +435,72 @@ def getFolderSize(folder):
 			total_size += os.path.getsize(itempath)
 		elif os.path.isdir(itempath):
 			total_size += getFolderSize(itempath)
+
 	return total_size
-	
+
+#---------------------------------------------------------------- 
+# nur für den Fotosspeicher (2-dim): Liste der Verzeichnisse mit
+#	Gesamtgröße der enthalten Fotos
+def getStorageInfo(folder):
+	PLog("getStorageInfo: " + folder)
+
+	subdirs=""; dirfiles=0; 
+	total_dirs=0; total_size=0; total_files=0
+	try:
+		globDirs = '%s/*' % folder
+		dirs = glob.glob(globDirs) 
+		total_dirs = len(dirs)
+		PLog("globDirs: %d" % total_dirs)
+
+		for item in dirs:
+			if os.path.isdir(item):
+				verz = item.split("/")[-1]
+				globFiles = '%s/*' % item
+				files = glob.glob(globFiles)
+				dirfiles = len(files)
+				PLog("globFiles: %d" % dirfiles)
+				for f in files:
+					dir_size=0
+					if os.path.isfile(f):
+						s = os.path.getsize(f)
+						dir_size = dir_size + s 		# Größe Verz.
+						total_size = total_size + s		# Gesamtgröße
+						total_files = total_files + 1	# Anzahl Dateien im Verz.
+				
+				dir_size =  humanbytes(dir_size)
+				if len(verz) > 58:
+					verz = "%s.." % verz[:58]
+				txt = verz.ljust(60, ' ')	
+				line = "%s | %3d | %5s" % (txt, dirfiles, dir_size.rjust(10))
+				subdirs = "%s\n%s" % (subdirs, line)
+				
+		PLog("getStorageInfo: Ordner %d, Dateien %d, total_size %d" % (total_dirs, total_files, total_size))
+		return subdirs, dirfiles, total_size, total_dirs
+	except Exception as exception:	
+		PLog("Info_error: " + str(exception))
+		return "", 0, 0, 0	
+
+
+#----------------------------------------------------------------  
+def humanbytes(B):
+	'Return the given bytes as a human friendly KB, MB, GB, or TB string'
+	# aus https://stackoverflow.com/questions/12523586/python-format-size-application-converting-b-to-kb-mb-gb-tb/37423778
+	B = float(B)
+	KB = float(1024)
+	MB = float(KB ** 2) # 1,048,576
+	GB = float(KB ** 3) # 1,073,741,824
+	TB = float(KB ** 4) # 1,099,511,627,776
+
+	if B < KB:
+	  return '{0} {1}'.format(B,'Bytes' if 0 == B > 1 else 'Byte')
+	elif KB <= B < MB:
+	  return '{0:.2f} KB'.format(B/KB)
+	elif MB <= B < GB:
+	  return '{0:.2f} MB'.format(B/MB)
+	elif GB <= B < TB:
+	  return '{0:.2f} GB'.format(B/GB)
+	elif TB <= B:
+	  return '{0:.2f} TB'.format(B/TB)
 #----------------------------------------------------------------  
 # Listitems verlangen encodierte Strings auch bei Umlauten. Einige Quellen liegen in unicode 
 #	vor (s. json-Auswertung in get_page) und müssen rückkonvertiert  werden.
@@ -441,7 +565,7 @@ def addDir(li, label, action, dirID, fanart, thumb, fparams, summary='', tagline
 	
 	li.setArt({'thumb':thumb, 'icon':thumb, 'fanart':fanart})
 	xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
-	PLog('PLUGIN_URL: ' + PLUGIN_URL)	# plugin://plugin.video.ardundzdf/
+	PLog('PLUGIN_URL: ' + PLUGIN_URL)
 	PLog('HANDLE: ' + str(HANDLE))
 	url = PLUGIN_URL+"?action="+action+"&dirID="+dirID+"&fanart="+fanart+"&thumb="+thumb+quote_plus(fparams)
 	PLog("addDir_url: " + unquote_plus(url))
@@ -675,6 +799,7 @@ def unescape(line):
 		#	Carriage Return (Cr)
 		(u"–", u"-"), (u"&#x27;", u"'"), (u"&#xD;", u""), (u"\xc2\xb7", u"-"),
 		(u'undoacute;', u'o'), (u'&eacute;', u'e'), (u'&egrave;', u'e'),
+		 (u'\'', u''),
 		(u'&atilde;', u'a')):
 		line = line.replace(*r)
 	return line
@@ -749,6 +874,7 @@ def L(string):
 		return 	string
 	
 	lines = RLoad(loc_file, abs_path=True)
+	PLog(lines[:80])
 	lines = lines.splitlines()
 	lstring = ''	
 	for line in lines:
@@ -763,7 +889,7 @@ def L(string):
 			lstring = lstring.replace(',', '')
 			break
 			
-	PLog(string); PLog(lstring)		
+	PLog("lstring: %s" % (lstring))		
 	if lstring:
 		return lstring
 	else:

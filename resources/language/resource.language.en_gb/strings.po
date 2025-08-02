@@ -6,41 +6,14 @@ msgstr ""
 "X-Generator: POEditor.com\n"
 "Project-Id-Version: TuneIn2017\n"
 "Info: only for Settings. Main translating by Addon\n"
+"Info: msgid always in english\n"
 "Language: en_gb\n"
-
-#:
-msgctxt "#30202" 
-#: "This term is shown in Preferences as option to look for update at plugin-start"
-msgid "look for update at plugin-start"
-msgstr "look for update at plugin-start"
 
 #: 
 msgctxt "#30111" 
 #: "This term is shown in Preferences for a listbox for setting the maximum number of items per page. "
 msgid "maximum number of items per page"
 msgstr "maximum number of items per page"
-
-#:
-msgctxt "#30200" 
-#: "Preferences Category Label"
-msgid "Startup Settings"
-msgstr "Startup Settings"
-
-#: 
-msgctxt "#30201" 
-#: "Startup Preferences"
-msgid "Turn debug logging on or off"
-msgstr "Turn debug logging on or off"
-
-msgctxt "#30501" 
-#: "Cache Preferences"
-msgid "Days until deletion"
-msgstr "Days until deletion"
-
-msgctxt "#30502" 
-#: "Preferences: max. slidestore"
-msgid "max. storage size for slideshows"
-msgstr "max. storage size for slideshows"
 
 msgctxt "#30101" 
 #: "Category Label User"
@@ -92,16 +65,50 @@ msgctxt "#30116"
 msgid "max. width of pictures"
 msgstr "max. width of pictures"
 
-msgctxt "#30117"
+#:
+msgctxt "#30200" 
+#: "Preferences Category Label"
+msgid "Startup Settings"
+msgstr "Startup Settings"
+
+#: 
+msgctxt "#30201" 
+#: "Startup Preferences"
+msgid "Turn debug logging on or off"
+msgstr "Turn debug logging on or off"
+
+#:
+msgctxt "#30202" 
+#: "This term is shown in Preferences as option to look for update at plugin-start"
+msgid "look for update at plugin-start"
+msgstr "look for update at plugin-start"
+
+msgctxt "#30203"
 #: "Preferences: Safe search"
 msgid "Safe search"
 msgstr "Safe search"
 
-msgctxt "#30118"
-#: "Preferences: Keep search history"
-msgid "Keep search history"
-msgstr "Keep search history"
+msgctxt "#30204"
+#: "Preferences: Save search terms"
+msgid "Save search terms"
+msgstr "Save search terms"
 
 msgctxt "#30119"
 msgid "Please enter search term(s)"
 msgstr "Please enter search term(s)"
+
+msgctxt "#30500" 
+#: "Preferences Category: Fotospeicher"
+msgid "Photo storage"
+msgstr "Photo storage"
+
+msgctxt "#30501" 
+#: "Preferences: foto_store_days"
+msgid "Days until delete a photo in storage"
+msgstr "Days until delete a photo in storage"
+
+msgctxt "#30502" 
+#: "Preferences: warn_store_size"
+msgid "daily warning if the photo storage exceeds"
+msgstr "daily warning if the photo storage exceeds"
+

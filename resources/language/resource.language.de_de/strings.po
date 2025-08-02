@@ -6,13 +6,8 @@ msgstr ""
 "X-Generator: POEditor.com\n"
 "Project-Id-Version: TuneIn2017\n"
 "Info: only for Preferences. Main translating by Addon\n"
+"Info: msgid always in english\n"
 "Language: de\n"
-
-#:
-msgctxt "#30202" 
-#: "This term is shown in Preferences as option to look for update at plugin-start"
-msgid "look for update at plugin-start"
-msgstr "neues Update beim Start des Plugins anzeigen"
 
 #: 
 msgctxt "#30111" 
@@ -32,15 +27,21 @@ msgctxt "#30201"
 msgid "Turn debug logging on or off"
 msgstr "Schaltet die Debug-Protokollierung ein oder aus"
 
-msgctxt "#30501" 
-#: "Cache Preferences"
-msgid "Days until deletion"
-msgstr "Löschfrist (Tage)"
+#:
+msgctxt "#30202" 
+#: "This term is shown in Preferences as option to look for update at plugin-start"
+msgid "look for update at plugin-start"
+msgstr "neues Update beim Start des Plugins anzeigen"
 
-msgctxt "#30502" 
-#: "Preferences: max. slidestore"
-msgid "max. storage size for slideshows"
-msgstr "max. Speicher auf Datenträger für Slideshows"
+msgctxt "#30203"
+#: "Preferences: Safe search"
+msgid "Safe search"
+msgstr "Sichere Suche"
+
+msgctxt "#30204"
+#: "Preferences: Save search terms"
+msgid "Save search terms"
+msgstr "Suchworte speichern"
 
 msgctxt "#30101" 
 #: "Category Label User"
@@ -92,16 +93,22 @@ msgctxt "#30116"
 msgid "max. width of pictures"
 msgstr "max. Bildgröße"
 
-msgctxt "#30117"
-#: "Preferences: Safe search"
-msgid "Sichere Suche"
-msgstr "Sichere Suche"
-
-msgctxt "#30118"
-#: "Preferences: Keep search history"
-msgid "Suchverlauf behalten"
-msgstr "Suchverlauf behalten"
-
 msgctxt "#30119"
 msgid "Bitte Suchwort(e) eingeben"
 msgstr "Bitte Suchwort(e) eingeben"
+
+msgctxt "#30500"
+#: "Preferences Category: Fotospeicher"
+msgid "Photo storage"
+msgstr "Fotospeicher"
+
+msgctxt "#30501"
+#: "Preferences: foto_store_days"
+msgid "Days until delete a photo in storage"
+msgstr "Fotos im Speicher löschen wenn älter als"
+
+msgctxt "#30502"
+#: "Preferences: warn_store_size"
+msgid "daily warning if the photo storage exceeds"
+msgstr "Tägliche Warnung bei Fotospeichergröße ab"
+
