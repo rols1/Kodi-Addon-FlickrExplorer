@@ -48,7 +48,7 @@ from resources.lib.util_flickr import *
 
 # +++++ FlickrExplorer  - Addon Kodi-Version, migriert von der Plexmediaserver-Version +++++
 
-VERSION =  '0.7.7'	
+VERSION =  '0.7.8'	
 VDATE = '25.07.2025'
 
 # 
